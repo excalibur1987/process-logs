@@ -1,0 +1,78 @@
+import { db } from "$lib/db";
+import { functionHeaders, functionProgress } from "$lib/db/schema";
+import { and, eq, gte, sql } from "drizzle-orm";
+import { json } from "@sveltejs/kit";
+import { z } from "zod";
+
+export async function GET({ params, request }) {
+  const funcName = params.funcName;
+
+  const requestSchema = z.object({
+    period: z.enum(["hour", "day", "week", "month", "year"]),
+    interval: z.number({ coerce: true }),
+    funcSlug: z.string(),
+    args: z
+      .any()
+      .optional()
+      .transform((data) => {
+        return data ? JSON.parse(data) : {};
+      }),
+  });
+
+  try {
+    const { period, interval, funcSlug, args } = requestSchema.parse(
+      Object.fromEntries(new URL(request.url).searchParams.entries())
+    );
+    const [funcHeader] = await db
+      .select()
+      .from(functionHeaders)
+      .where(eq(sql<string>`slugify(${functionHeaders.funcName})`, funcName));
+    if (!funcHeader) {
+      return json({ error: "Function not found" }, { status: 404 });
+    }
+
+    const intervals = {
+      hour: 1000 * 60 * 60,
+      day: 1000 * 60 * 60 * 24,
+      week: 1000 * 60 * 60 * 24 * 7,
+      month: 1000 * 60 * 60 * 24 * 30,
+      year: 1000 * 60 * 60 * 24 * 365,
+    };
+
+    const startDate = new Date(
+      new Date().getTime() - interval * intervals[period]
+    );
+
+    const query = db
+      .select({
+        count: sql<number>`count(*)`.mapWith(Number).as("count"),
+        avg_duration:
+          sql<number>`extract(epoch from avg(${functionProgress.endDate} - ${functionProgress.startDate}))`
+            .mapWith(Number)
+            .as("avg_duration"),
+        pending:
+          sql<number>`sum(case when ${functionProgress.finished} is null then 1 else 0 end)`
+            .mapWith(Number)
+            .as("pending"),
+      })
+      .from(functionProgress)
+      .where(
+        and(
+          eq(functionProgress.funcName, funcHeader.funcName),
+          gte(functionProgress.startDate, startDate.toISOString()),
+          sql`${functionProgress.args}::text  = ${JSON.stringify(
+            args || "{}"
+          )}::text`,
+          sql`${JSON.stringify(args || "{}")}::text = ${
+            functionProgress.args
+          }::text`
+        )
+      );
+
+    const [runs] = await query.execute();
+
+    return json({ runs });
+  } catch (error) {
+    return json({ error: (error as Error).message }, { status: 400 });
+  }
+}

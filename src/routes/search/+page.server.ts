@@ -19,8 +19,8 @@ export const load: PageServerLoad = async () => {
     .where(
       between(
         functionProgress.startDate,
-        new Date(defaultStartDate),
-        new Date(defaultEndDate)
+        new Date(defaultStartDate).toISOString(),
+        new Date(defaultEndDate).toISOString()
       )
     );
 
