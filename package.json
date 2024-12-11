@@ -15,6 +15,7 @@
         "@sveltejs/vite-plugin-svelte": "^4.0.0",
         "autoprefixer": "^10.4.16",
         "daisyui": "^4.4.19",
+        "dotenv": "^16.4.7",
         "postcss": "^8.4.32",
         "svelte": "^5.0.0",
         "svelte-check": "^4.0.0",
@@ -26,7 +27,8 @@
         "@types/lodash": "^4.14.202",
         "@types/pg": "^8.10.9",
         "date-fns": "^2.30.0",
-        "drizzle-orm": "^0.29.1",
+        "drizzle-kit": "^0.30.0",
+        "drizzle-orm": "^0.38.0",
         "lodash": "^4.17.21",
         "postgres": "^3.4.5",
         "zod": "^3.23.8"
