@@ -3,12 +3,31 @@
   import { enhance } from "$app/forms";
   import SearchSelect from "$lib/components/SearchSelect.svelte";
   import type { FunctionHeader } from "$lib/types";
+  import { goto } from "$app/navigation";
 
-  export let data: PageData;
-  export let form: ActionData;
+  let { data, form }: { data: PageData; form: ActionData } = $props();
 
-  let loading = false;
-  let selectedFunction: FunctionHeader | undefined;
+  let loading = $state(false);
+  let selectedFunction = $state<FunctionHeader | undefined>(undefined);
+  let currentPage = $state(
+    parseInt(new URL(window.location.href).searchParams.get("page") || "1")
+  );
+  const limit = 10;
+
+  $effect(() => {
+    if (!loading) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("page", currentPage.toString());
+      goto(url.toString(), { replaceState: true });
+    }
+  });
+
+  function handlePageChange(newPage: number) {
+    currentPage = newPage;
+  }
+
+  const pagination = form?.pagination || data.pagination;
+  const results = form?.results || data.results;
 </script>
 
 <div class="p-8">
@@ -25,6 +44,9 @@
       };
     }}
   >
+    <input type="hidden" name="page" value={currentPage} />
+    <input type="hidden" name="limit" value={limit} />
+
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
       <div class="form-control">
         <label class="label" for="funcName">
@@ -104,8 +126,8 @@
         </tr>
       </thead>
       <tbody>
-        {#if form?.results}
-          {#each form.results as func}
+        {#if results?.length > 0}
+          {#each results as func}
             <tr>
               <td>{func.funcName}</td>
               <td>{new Date(func.startDate).toLocaleString()}</td>
@@ -129,8 +151,86 @@
               </td>
             </tr>
           {/each}
+        {:else}
+          <tr>
+            <td colspan="6" class="text-center py-4">No results found</td>
+          </tr>
         {/if}
       </tbody>
     </table>
   </div>
+
+  {#if pagination && pagination.totalPages > 1}
+    <div class="flex justify-center gap-2 mt-4">
+      <button
+        class="btn btn-sm"
+        disabled={currentPage === 1}
+        onclick={() => handlePageChange(currentPage - 1)}
+      >
+        Previous
+      </button>
+
+      {#if pagination.totalPages <= 7}
+        {#each Array(pagination.totalPages) as _, i}
+          <button
+            class="btn btn-sm"
+            class:btn-primary={currentPage === i + 1}
+            onclick={() => handlePageChange(i + 1)}
+          >
+            {i + 1}
+          </button>
+        {/each}
+      {:else}
+        {#if currentPage > 3}
+          <button class="btn btn-sm" onclick={() => handlePageChange(1)}
+            >1</button
+          >
+          {#if currentPage > 4}
+            <span class="btn btn-disabled btn-sm">...</span>
+          {/if}
+        {/if}
+
+        {#each Array(3) as _, i}
+          {@const page = Math.max(
+            Math.min(currentPage + (i - 1), pagination.totalPages - 2),
+            Math.min(3, pagination.totalPages - 2)
+          )}
+          <button
+            class="btn btn-sm"
+            class:btn-primary={currentPage === page}
+            onclick={() => handlePageChange(page)}
+          >
+            {page}
+          </button>
+        {/each}
+
+        {#if currentPage < pagination.totalPages - 2}
+          {#if currentPage < pagination.totalPages - 3}
+            <span class="btn btn-disabled btn-sm">...</span>
+          {/if}
+          <button
+            class="btn btn-sm"
+            onclick={() => handlePageChange(pagination.totalPages)}
+          >
+            {pagination.totalPages}
+          </button>
+        {/if}
+      {/if}
+
+      <button
+        class="btn btn-sm"
+        disabled={currentPage === pagination.totalPages}
+        onclick={() => handlePageChange(currentPage + 1)}
+      >
+        Next
+      </button>
+    </div>
+
+    <div class="text-center text-sm text-base-content/60 mt-2">
+      Showing {(currentPage - 1) * limit + 1} to {Math.min(
+        currentPage * limit,
+        pagination.totalCount
+      )} of {pagination.totalCount} results
+    </div>
+  {/if}
 </div>

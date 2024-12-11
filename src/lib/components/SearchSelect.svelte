@@ -115,20 +115,20 @@
     class="input input-bordered w-full"
     {placeholder}
     value={value?.[valueKey]}
-    on:input={handleInput}
-    on:focus={() => (showDropdown = true)}
+    oninput={handleInput}
+    onfocus={() => (showDropdown = true)}
   />
 
   {#if showDropdown && (loading || options.length > 0)}
     <div
       class="absolute z-50 mt-1 w-full bg-base-200 rounded-lg shadow-lg max-h-60 overflow-auto"
-      on:scroll={handleScroll}
+      onscroll={handleScroll}
     >
       {#each options as option}
         <button
           type="button"
           class="block w-full text-left px-4 py-2 hover:bg-base-300 cursor-pointer"
-          on:click={() => selectOption(option)}
+          onclick={() => selectOption(option)}
         >
           {#if optionView}
             {@render optionView(option)}
