@@ -1,6 +1,10 @@
 import { json } from "@sveltejs/kit";
 import { db } from "$lib/db";
-import { functionProgress, functionLogs } from "$lib/db/schema";
+import {
+  functionProgress,
+  functionLogs,
+  functionHeaders,
+} from "$lib/db/schema";
 import { eq, and, between, or, sql, ilike, isNull } from "drizzle-orm";
 
 import { z } from "zod";
@@ -11,7 +15,7 @@ export async function POST({ request }) {
   const schema = z.object({
     funcName: z.string(),
     parentId: z.number(),
-    funcSlug: z.string(),
+    slug: z.string(),
     args: z.any(),
     source: z.string(),
     logs: z.array(
@@ -28,24 +32,23 @@ export async function POST({ request }) {
     throw new Error("Invalid data format");
   }
 
-  const {
-    funcName,
-    parentId,
-    funcSlug,
-    args,
-    source,
-    logs = [],
-  } = parsedData.data;
+  const { funcName, parentId, slug, args, source, logs = [] } = parsedData.data;
+
+  const funcHeaderId = await db
+    .select({ id: functionHeaders.id })
+    .from(functionHeaders)
+    .where(eq(functionHeaders.funcSlug, funcName))
+    .then(([result]) => result?.id);
 
   const [progress] = await db
     .insert(functionProgress)
     .values({
-      funcName,
+      funcHeaderId,
       parentId,
-      funcSlug,
+      slug,
       args: JSON.stringify(args),
       source,
-      startDate: new Date(),
+      startDate: new Date().toISOString(),
       finished: false,
       success: false,
     })
@@ -55,7 +58,7 @@ export async function POST({ request }) {
     await db.insert(functionLogs).values(
       logs.map((log) => ({
         funcId: progress.funcId,
-        rowDate: new Date(),
+        rowDate: new Date().toISOString(),
         type: log.type,
         message: log.message,
         traceBack: log.traceBack,
@@ -68,18 +71,19 @@ export async function POST({ request }) {
 
 export async function GET({ url }) {
   const funcName = url.searchParams.get("funcName");
-  const funcSlug = url.searchParams.get("funcSlug");
+  const slug = url.searchParams.get("slug");
   const startDate = url.searchParams.get("startDate");
   const endDate = url.searchParams.get("endDate");
   const isParent = url.searchParams.get("isParent");
 
   const filters = [
     or(
-      ilike(functionProgress.funcName, `${funcName ? `%${funcName}%` : ""}`),
-      ilike(functionProgress.funcSlug, `${funcSlug ? `%${funcSlug}%` : ""}`),
+      ilike(functionHeaders.funcName, `${funcName ? `%${funcName}%` : ""}`),
+      ilike(functionProgress.slug, `${slug ? `%${slug}%` : ""}`),
       eq(sql<string>`${funcName || ""}`, sql`''`)
     ),
   ];
+
   if (startDate && endDate) {
     filters.push(
       between(
@@ -95,11 +99,28 @@ export async function GET({ url }) {
   }
 
   let query = db
-    .select()
+    .select({
+      funcId: functionProgress.funcId,
+      parentId: functionProgress.parentId,
+      slug: functionProgress.slug,
+      startDate: functionProgress.startDate,
+      endDate: functionProgress.endDate,
+      finished: functionProgress.finished,
+      success: functionProgress.success,
+      source: functionProgress.source,
+      args: functionProgress.args,
+      funcHeaderId: functionProgress.funcHeaderId,
+      funcName: functionHeaders.funcName,
+      funcSlug: functionHeaders.funcSlug,
+    })
     .from(functionProgress)
+    .innerJoin(
+      functionHeaders,
+      eq(functionProgress.funcHeaderId, functionHeaders.id)
+    )
     .where(and(...filters));
 
-  const results = await query.execute();
+  const results = await query;
 
   const summary = {
     total: results.length,
