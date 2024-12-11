@@ -63,7 +63,11 @@
               </td>
               <td>{func.source}</td>
               <td>
-                <a href="/functions/{func.funcId}" class="btn btn-sm">
+                <a
+                  data-sveltekit-preload-data="off"
+                  href="/functions/{func.funcId}"
+                  class="btn btn-sm"
+                >
                   View Details
                 </a>
               </td>

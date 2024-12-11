@@ -43,14 +43,14 @@ export const load: PageServerLoad = async ({ params }) => {
     }
 
     // Get function logs
-    const logs = await db
+    const logs = db
       .select()
       .from(functionLogs)
       .where(eq(functionLogs.funcId, funcId))
       .orderBy(functionLogs.rowDate);
 
     // Get child functions if any
-    const children = await db
+    const children = db
       .select({
         funcId: functionProgress.funcId,
         slug: functionProgress.slug,
