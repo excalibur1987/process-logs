@@ -2,6 +2,7 @@ import { json } from "@sveltejs/kit";
 import { db } from "$lib/db";
 import { functionProgress, functionLogs } from "$lib/db/schema";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 export async function GET({ params }) {
   const funcId = parseInt(params.funcId);
@@ -46,16 +47,22 @@ export async function PATCH({ params, request }) {
     return new Response("Invalid function ID", { status: 400 });
   }
 
+  const requestSchema = z.object({
+    finished: z.boolean(),
+    success: z.boolean(),
+    endDate: z.date({ coerce: true }).optional(),
+  });
+
   try {
     const data = await request.json();
-    const { finished, success, endDate } = data;
+    const { finished, success, endDate } = requestSchema.parse(data);
 
     const [updatedFunc] = await db
       .update(functionProgress)
       .set({
         finished,
         success,
-        endDate: endDate ? new Date(endDate) : undefined,
+        endDate: endDate ? endDate.toISOString() : undefined,
       })
       .where(eq(functionProgress.funcId, funcId))
       .returning();
@@ -69,6 +76,14 @@ export async function PATCH({ params, request }) {
 
 // Endpoint to add logs to a function
 export async function POST({ params, request }) {
+  const requestSchema = z.object({
+    type: z.string(),
+    message: z.string(),
+    traceBack: z.string().optional().nullable(),
+    rowDate: z.date({ coerce: true }).optional().nullable(),
+    funcId: z.number(),
+  });
+
   const funcId = parseInt(params.funcId);
 
   if (isNaN(funcId)) {
@@ -77,7 +92,9 @@ export async function POST({ params, request }) {
 
   try {
     const data = await request.json();
-    const { type, message, traceBack } = data;
+    const { type, message, traceBack, rowDate } = requestSchema.parse(
+      JSON.parse(data)
+    );
 
     const [log] = await db
       .insert(functionLogs)
@@ -86,7 +103,7 @@ export async function POST({ params, request }) {
         type,
         message,
         traceBack,
-        rowDate: new Date(),
+        rowDate: rowDate ? rowDate.toISOString() : new Date().toISOString(),
       })
       .returning();
 
