@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { PageData } from './$types';
-  
+  import type { PageData } from "./$types";
+
   interface Props {
     data: PageData;
   }
@@ -11,23 +11,23 @@
 
 <div class="p-8">
   <h1 class="text-3xl font-bold mb-8">Function Execution Summary</h1>
-  
+
   <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
     <div class="stat bg-base-200 rounded-box">
       <div class="stat-title">Total Functions</div>
       <div class="stat-value">{summary.total}</div>
     </div>
-    
+
     <div class="stat bg-info rounded-box">
       <div class="stat-title">Running</div>
       <div class="stat-value">{summary.running}</div>
     </div>
-    
+
     <div class="stat bg-success rounded-box">
       <div class="stat-title">Succeeded</div>
       <div class="stat-value">{summary.succeeded}</div>
     </div>
-    
+
     <div class="stat bg-error rounded-box">
       <div class="stat-title">Failed</div>
       <div class="stat-value">{summary.failed}</div>
@@ -73,4 +73,4 @@
       </table>
     </div>
   </div>
-</div> 
+</div>
