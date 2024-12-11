@@ -1,5 +1,10 @@
-<script>
+<script lang="ts">
   import '../app.css';
+  interface Props {
+    children?: import('svelte').Snippet;
+  }
+
+  let { children }: Props = $props();
 </script>
 
 <div class="drawer lg:drawer-open">
@@ -18,7 +23,7 @@
       </div>
     </div>
     
-    <slot />
+    {@render children?.()}
   </div>
   <div class="drawer-side">
     <label for="my-drawer-2" class="drawer-overlay"></label> 

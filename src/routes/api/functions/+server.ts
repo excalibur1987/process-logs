@@ -99,8 +99,6 @@ export async function GET({ url }) {
     .from(functionProgress)
     .where(and(...filters));
 
-  console.log(query.toSQL());
-
   const results = await query.execute();
 
   const summary = {

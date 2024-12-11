@@ -58,11 +58,6 @@ export const actions = {
       .from(functionProgress)
       .where(and(...filters));
 
-    console.log(
-      "🚀 ~ file: +page.server.ts:57 ~ search: ~ query:",
-      query.toSQL()
-    );
-
     let results = await query;
 
     // Filter by status on the server side

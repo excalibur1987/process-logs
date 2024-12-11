@@ -3,11 +3,17 @@
   import { enhance } from "$app/forms";
   import SearchSelect from "$lib/components/SearchSelect.svelte";
 
-  export let data: PageData;
-  export let form: ActionData;
+  interface Props {
+    data: PageData;
+    form: ActionData;
+  }
 
-  let loading = false;
-  let selectedFunction = "";
+  let { data, form }: Props = $props();
+
+  let loading = $state(false);
+  let selectedFunction = $state<{ id: number; funcName: string } | undefined>(
+    undefined
+  );
 </script>
 
 <div class="p-8">
@@ -30,12 +36,18 @@
           <span class="label-text">Function Name</span>
         </label>
 
+        {#snippet optionView(option: { id: number; funcName: string })}
+          <span>{option.funcName}</span>
+        {/snippet}
+
         <SearchSelect
           name="funcName"
           endpoint="/api/functions/names"
           searchKey="search"
           placeholder="Search for a function..."
           bind:value={selectedFunction}
+          valueKey="funcName"
+          {optionView}
         ></SearchSelect>
       </div>
 

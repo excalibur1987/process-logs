@@ -2,10 +2,10 @@
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
 
-  let functionDetails = null;
-  let logs = [];
-  let loading = true;
-  let error = null;
+  let functionDetails = $state(null);
+  let logs = $state([]);
+  let loading = $state(true);
+  let error = $state(null);
 
   async function fetchFunctionDetails() {
     try {

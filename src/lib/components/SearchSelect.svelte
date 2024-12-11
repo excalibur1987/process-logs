@@ -1,21 +1,31 @@
-<script lang="ts">
-  import { onMount, createEventDispatcher } from "svelte";
-  import { clickOutside } from "$lib/actions/clickOutside";
+<script lang="ts" generics="T">
+  import { onMount, type Snippet } from "svelte";
   import lodash from "lodash";
 
-  export let name: string;
-  export let placeholder = "Search...";
-  export let value = "";
-  export let endpoint;
-  export let searchKey = "search";
+  interface Props {
+    name: string;
+    placeholder?: string;
+    value?: T;
+    valueKey: keyof T;
+    endpoint: string;
+    searchKey?: string;
+    optionView?: Snippet<[T]>;
+  }
 
-  let searchTerm = "";
-  let options: { id: number; funcName: string }[] = [];
-  let loading = false;
-  let showDropdown = false;
-  let inputElement: HTMLInputElement;
+  let {
+    name,
+    placeholder = "Search...",
+    value = $bindable<T | undefined>(undefined),
+    valueKey,
+    endpoint,
+    searchKey = "search",
+    optionView,
+  }: Props = $props();
 
-  const dispatch = createEventDispatcher();
+  let options = $state<T[]>([]);
+  let loading = $state(false);
+  let showDropdown = $state(false);
+  let inputElement: HTMLInputElement | undefined = $state();
 
   const searchFunctions = lodash.debounce(async (term: string) => {
     if (!term) {
@@ -40,16 +50,12 @@
 
   function handleInput() {
     showDropdown = true;
-    searchTerm = inputElement.value;
-    value = searchTerm;
-    dispatch("change", searchTerm);
+    const searchTerm = inputElement?.value ?? "";
     searchFunctions(searchTerm);
   }
 
-  function selectOption(option: { id: number; funcName: string }) {
-    searchTerm = option.funcName;
-    value = option.funcName;
-    dispatch("change", option.funcName);
+  function selectOption(option: T) {
+    value = option;
     showDropdown = false;
   }
 
@@ -59,8 +65,7 @@
 
   onMount(() => {
     if (value) {
-      searchTerm = value;
-      searchFunctions(value);
+      searchFunctions(value?.[valueKey ?? "id"] as string);
     }
   });
 </script>
@@ -72,9 +77,9 @@
     type="text"
     class="input input-bordered w-full"
     {placeholder}
-    value={searchTerm}
-    on:input={handleInput}
-    on:focus={() => (showDropdown = true)}
+    value={value?.[valueKey ?? "id"]}
+    oninput={handleInput}
+    onfocus={() => (showDropdown = true)}
   />
 
   {#if showDropdown && (loading || options.length > 0)}
@@ -90,9 +95,13 @@
           <button
             type="button"
             class="block w-full text-left px-4 py-2 hover:bg-base-300 cursor-pointer"
-            on:click={() => selectOption(option)}
+            onclick={() => selectOption(option)}
           >
-            {option.funcName}
+            {#if optionView}
+              {@render optionView(option)}
+            {:else}
+              {option[valueKey ?? "id"]}
+            {/if}
           </button>
         {/each}
       {/if}
