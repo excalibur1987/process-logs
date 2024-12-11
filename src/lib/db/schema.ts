@@ -37,8 +37,7 @@ export const functionProgress = pgTable(
   {
     funcId: serial("func_id").primaryKey().notNull(),
     parentId: integer("parent_id"),
-    funcSlug: varchar("func_slug", { length: 200 }),
-    funcName: varchar("func_name", { length: 200 }).notNull(),
+    slug: varchar("slug", { length: 200 }),
     startDate: timestamp("start_date", {
       withTimezone: true,
       mode: "string",
