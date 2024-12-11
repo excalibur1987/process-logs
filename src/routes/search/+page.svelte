@@ -2,18 +2,13 @@
   import type { PageData, ActionData } from "./$types";
   import { enhance } from "$app/forms";
   import SearchSelect from "$lib/components/SearchSelect.svelte";
+  import type { FunctionHeader } from "$lib/types";
 
-  interface Props {
-    data: PageData;
-    form: ActionData;
-  }
+  export let data: PageData;
+  export let form: ActionData;
 
-  let { data, form }: Props = $props();
-
-  let loading = $state(false);
-  let selectedFunction = $state<{ id: number; funcName: string } | undefined>(
-    undefined
-  );
+  let loading = false;
+  let selectedFunction: FunctionHeader | undefined;
 </script>
 
 <div class="p-8">
@@ -35,20 +30,20 @@
         <label class="label" for="funcName">
           <span class="label-text">Function Name</span>
         </label>
-
-        {#snippet optionView(option: { id: number; funcName: string })}
-          <span>{option.funcName}</span>
+        {#snippet renderOption(selectedFunction: FunctionHeader)}
+          <span class="text-sm text-gray-500">
+            {selectedFunction.funcName} ({selectedFunction.funcSlug})
+          </span>
         {/snippet}
-
         <SearchSelect
           name="funcName"
-          endpoint="/api/functions/names"
-          searchKey="search"
           placeholder="Search for a function..."
           bind:value={selectedFunction}
           valueKey="funcName"
-          {optionView}
-        ></SearchSelect>
+          endpoint="/api/functions/names"
+          pageSize={20}
+          optionView={renderOption}
+        />
       </div>
 
       <div class="form-control">
@@ -85,18 +80,6 @@
           <option value="success">Success</option>
           <option value="failed">Failed</option>
         </select>
-      </div>
-
-      <div class="form-control">
-        <label class="label" for="isParent">
-          <span class="label-text">Parent</span>
-        </label>
-        <input
-          id="isParent"
-          type="checkbox"
-          name="isParent"
-          class="checkbox checkbox-primary"
-        />
       </div>
     </div>
 

@@ -1,8 +1,8 @@
 import { db } from "$lib/db";
-import { functionProgress } from "$lib/db/schema";
-import { eq, and, between, or, sql, ilike } from "drizzle-orm";
-import type { PageServerLoad, Actions } from "./$types";
+import { functionProgress, functionHeaders } from "$lib/db/schema";
 import { format } from "date-fns";
+import { and, between, ilike, sql, eq } from "drizzle-orm";
+import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async () => {
   // Set default date range to last 7 days
@@ -14,8 +14,25 @@ export const load: PageServerLoad = async () => {
   const defaultEndDate = format(end, "yyyy-MM-dd");
 
   const results = await db
-    .select()
+    .select({
+      funcId: functionProgress.funcId,
+      parentId: functionProgress.parentId,
+      slug: functionProgress.slug,
+      startDate: functionProgress.startDate,
+      endDate: functionProgress.endDate,
+      finished: functionProgress.finished,
+      success: functionProgress.success,
+      source: functionProgress.source,
+      args: functionProgress.args,
+      funcHeaderId: functionProgress.funcHeaderId,
+      funcName: functionHeaders.funcName,
+      funcSlug: functionHeaders.funcSlug,
+    })
     .from(functionProgress)
+    .innerJoin(
+      functionHeaders,
+      eq(functionProgress.funcHeaderId, functionHeaders.id)
+    )
     .where(
       between(
         functionProgress.startDate,
@@ -41,7 +58,7 @@ export const actions = {
     const endDate = formData.get("endDate")?.toString();
     const status = formData.get("status")?.toString() || "all";
 
-    const filters = [ilike(functionProgress.funcName, `%${funcName}%`)];
+    const filters = [ilike(functionProgress.slug, `%${funcName}%`)];
 
     if (startDate && endDate) {
       filters.push(
@@ -54,8 +71,25 @@ export const actions = {
     }
 
     let query = db
-      .select()
+      .select({
+        funcId: functionProgress.funcId,
+        parentId: functionProgress.parentId,
+        slug: functionProgress.slug,
+        startDate: functionProgress.startDate,
+        endDate: functionProgress.endDate,
+        finished: functionProgress.finished,
+        success: functionProgress.success,
+        source: functionProgress.source,
+        args: functionProgress.args,
+        funcHeaderId: functionProgress.funcHeaderId,
+        funcName: functionHeaders.funcName,
+        funcSlug: functionHeaders.funcSlug,
+      })
       .from(functionProgress)
+      .innerJoin(
+        functionHeaders,
+        eq(functionProgress.funcHeaderId, functionHeaders.id)
+      )
       .where(and(...filters));
 
     let results = await query;
