@@ -5,7 +5,7 @@ import {
   functionLogs,
   functionHeaders,
 } from "$lib/db/schema";
-import { eq, and, between, or, sql, ilike, isNull } from "drizzle-orm";
+import { eq, and, between, or, sql, ilike, isNull, desc } from "drizzle-orm";
 
 import { z } from "zod";
 
@@ -75,6 +75,9 @@ export async function GET({ url }) {
   const startDate = url.searchParams.get("startDate");
   const endDate = url.searchParams.get("endDate");
   const isParent = url.searchParams.get("isParent");
+  const page = parseInt(url.searchParams.get("page") || "1");
+  const limit = parseInt(url.searchParams.get("limit") || "10");
+  const offset = (page - 1) * limit;
 
   const filters = [
     or(
@@ -98,7 +101,8 @@ export async function GET({ url }) {
     filters.push(isNull(functionProgress.parentId));
   }
 
-  let query = db
+  // Base query for both total count and results
+  const baseQuery = db
     .select({
       funcId: functionProgress.funcId,
       parentId: functionProgress.parentId,
@@ -120,14 +124,39 @@ export async function GET({ url }) {
     )
     .where(and(...filters));
 
-  const results = await query;
+  // Get total count
+  const totalCount = await db
+    .select({ count: sql<number>`count(*)`.mapWith(Number) })
+    .from(functionProgress)
+    .innerJoin(
+      functionHeaders,
+      eq(functionProgress.funcHeaderId, functionHeaders.id)
+    )
+    .where(and(...filters))
+    .then(([{ count }]) => Number(count));
 
+  // Get paginated results
+  const results = await baseQuery
+    .orderBy(desc(functionProgress.startDate))
+    .limit(limit)
+    .offset(offset);
+
+  // Calculate summary from current page results
   const summary = {
-    total: results.length,
+    total: totalCount,
     running: results.filter((r) => !r.finished).length,
     succeeded: results.filter((r) => r.finished && r.success).length,
     failed: results.filter((r) => r.finished && !r.success).length,
   };
 
-  return json({ summary, results });
+  return json({
+    summary,
+    results,
+    pagination: {
+      page,
+      limit,
+      totalPages: Math.ceil(totalCount / limit),
+      totalCount,
+    },
+  });
 }

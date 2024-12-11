@@ -1,10 +1,10 @@
 import { db } from "$lib/db";
 import { functionProgress, functionHeaders } from "$lib/db/schema";
 import { format } from "date-fns";
-import { and, between, ilike, sql, eq } from "drizzle-orm";
+import { and, between, ilike, sql, eq, desc } from "drizzle-orm";
 import type { Actions, PageServerLoad } from "./$types";
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ url }) => {
   // Set default date range to last 7 days
   const end = new Date();
   const start = new Date();
@@ -13,6 +13,28 @@ export const load: PageServerLoad = async () => {
   const defaultStartDate = format(start, "yyyy-MM-dd");
   const defaultEndDate = format(end, "yyyy-MM-dd");
 
+  const page = parseInt(url.searchParams.get("page") || "1");
+  const limit = parseInt(url.searchParams.get("limit") || "10");
+  const offset = (page - 1) * limit;
+
+  // Get total count
+  const totalCount = await db
+    .select({ count: sql<number>`count(*)`.mapWith(Number) })
+    .from(functionProgress)
+    .innerJoin(
+      functionHeaders,
+      eq(functionProgress.funcHeaderId, functionHeaders.id)
+    )
+    .where(
+      between(
+        functionProgress.startDate,
+        new Date(defaultStartDate).toISOString(),
+        new Date(defaultEndDate).toISOString()
+      )
+    )
+    .then(([{ count }]) => Number(count));
+
+  // Get paginated results
   const results = await db
     .select({
       funcId: functionProgress.funcId,
@@ -39,10 +61,19 @@ export const load: PageServerLoad = async () => {
         new Date(defaultStartDate).toISOString(),
         new Date(defaultEndDate).toISOString()
       )
-    );
+    )
+    .orderBy(desc(functionProgress.startDate))
+    .limit(limit)
+    .offset(offset);
 
   return {
     results,
+    pagination: {
+      page,
+      limit,
+      totalPages: Math.ceil(totalCount / limit),
+      totalCount,
+    },
     defaultDates: {
       startDate: defaultStartDate,
       endDate: defaultEndDate,
@@ -51,12 +82,15 @@ export const load: PageServerLoad = async () => {
 };
 
 export const actions = {
-  search: async ({ request }) => {
+  search: async ({ request, url }) => {
     const formData = await request.formData();
     const funcName = formData.get("funcName")?.toString() || "";
     const startDate = formData.get("startDate")?.toString();
     const endDate = formData.get("endDate")?.toString();
     const status = formData.get("status")?.toString() || "all";
+    const page = parseInt(formData.get("page")?.toString() || "1");
+    const limit = parseInt(formData.get("limit")?.toString() || "10");
+    const offset = (page - 1) * limit;
 
     const filters = [ilike(functionProgress.slug, `%${funcName}%`)];
 
@@ -70,7 +104,19 @@ export const actions = {
       );
     }
 
-    let query = db
+    // Get total count
+    const totalCount = await db
+      .select({ count: sql<number>`count(*)`.mapWith(Number) })
+      .from(functionProgress)
+      .innerJoin(
+        functionHeaders,
+        eq(functionProgress.funcHeaderId, functionHeaders.id)
+      )
+      .where(and(...filters))
+      .then(([{ count }]) => Number(count));
+
+    // Get paginated results
+    const results = await db
       .select({
         funcId: functionProgress.funcId,
         parentId: functionProgress.parentId,
@@ -90,20 +136,30 @@ export const actions = {
         functionHeaders,
         eq(functionProgress.funcHeaderId, functionHeaders.id)
       )
-      .where(and(...filters));
-
-    let results = await query;
+      .where(and(...filters))
+      .orderBy(desc(functionProgress.startDate))
+      .limit(limit)
+      .offset(offset);
 
     // Filter by status on the server side
-    if (status !== "all") {
-      results = results.filter((func) => {
-        if (status === "running") return !func.finished;
-        if (status === "success") return func.finished && func.success;
-        if (status === "failed") return func.finished && !func.success;
-        return true;
-      });
-    }
+    const filteredResults =
+      status !== "all"
+        ? results.filter((func) => {
+            if (status === "running") return !func.finished;
+            if (status === "success") return func.finished && func.success;
+            if (status === "failed") return func.finished && !func.success;
+            return true;
+          })
+        : results;
 
-    return { results };
+    return {
+      results: filteredResults,
+      pagination: {
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit),
+        totalCount,
+      },
+    };
   },
 } satisfies Actions;
