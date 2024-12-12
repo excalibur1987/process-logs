@@ -27,12 +27,7 @@ export const load: PageServerLoad = async ({ params }) => {
 
     if (!func) {
       return {
-        function: {
-          funcId: params.funcId,
-          funcName: "",
-          finished: false,
-          success: false,
-        },
+        function: undefined,
         logs: undefined,
       };
     }

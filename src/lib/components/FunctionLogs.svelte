@@ -31,7 +31,7 @@
   }
 
   async function fetchLogs() {
-    if (initialLogs) return;
+    if (isFinished) return;
 
     loading = true;
     error = null;
@@ -44,12 +44,6 @@
     } finally {
       loading = false;
     }
-  }
-
-  onMount(fetchLogs);
-  // Start polling for updates if the function is not finished
-  $effect(() => {
-    // Clear any existing interval
     if (intervalId) {
       clearInterval(intervalId);
     }
@@ -58,9 +52,11 @@
     if (!isFinished) {
       intervalId = setInterval(fetchLogs, pollingInterval);
     }
+  }
 
-    // Cleanup on component destroy
-    return () => {
+  onMount(function () {
+    fetchLogs();
+    return async () => {
       if (intervalId) {
         clearInterval(intervalId);
       }
