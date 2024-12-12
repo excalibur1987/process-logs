@@ -2,6 +2,7 @@
   import type { PageData } from "./$types";
   import FunctionLogs from "$lib/components/FunctionLogs.svelte";
   import { onMount } from "svelte";
+  import { invalidateAll } from "$app/navigation";
 
   interface Props {
     data: PageData;
@@ -12,7 +13,7 @@
   onMount(() => {
     if (!func) {
       setTimeout(() => {
-        window.location.reload();
+        invalidateAll();
       }, 1000);
     }
   });
