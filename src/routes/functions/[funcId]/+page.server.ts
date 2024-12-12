@@ -1,15 +1,16 @@
 import { db } from "$lib/db";
 import {
   functionProgress,
-  functionLogs,
   functionHeaders,
+  functionLogs,
 } from "$lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, url }) => {
   const funcId = parseInt(params.funcId);
+  const includeLogs = (url.searchParams.get("logs") || "true") === "true";
 
   if (isNaN(funcId)) {
     throw error(400, "Invalid function ID");
@@ -42,15 +43,8 @@ export const load: PageServerLoad = async ({ params }) => {
       throw error(404, "Function not found");
     }
 
-    // Get function logs
-    const logs = db
-      .select()
-      .from(functionLogs)
-      .where(eq(functionLogs.funcId, funcId))
-      .orderBy(functionLogs.rowDate);
-
     // Get child functions if any
-    const children = db
+    const children = await db
       .select({
         funcId: functionProgress.funcId,
         slug: functionProgress.slug,
@@ -68,10 +62,19 @@ export const load: PageServerLoad = async ({ params }) => {
       )
       .where(eq(functionProgress.parentId, funcId));
 
+    // Get logs if requested
+    const logs = includeLogs
+      ? db
+          .select()
+          .from(functionLogs)
+          .where(eq(functionLogs.funcId, funcId))
+          .orderBy(asc(functionLogs.rowDate))
+      : undefined;
+
     return {
       function: func,
-      logs,
       children,
+      logs,
     };
   } catch (err) {
     console.error("Error fetching function details:", err);

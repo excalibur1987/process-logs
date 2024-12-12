@@ -1,13 +1,13 @@
 <script lang="ts">
   import type { PageData } from "./$types";
-  import { invalidateAll } from "$app/navigation";
+  import FunctionLogs from "$lib/components/FunctionLogs.svelte";
 
   interface Props {
     data: PageData;
   }
 
   let { data }: Props = $props();
-  const { function: func, logs, children } = data;
+  const { function: func, children, logs } = data;
 </script>
 
 <div class="p-8">
@@ -72,7 +72,6 @@
             <a
               href="/functions/{func.parentId}"
               class="card bg-base-100 hover:bg-base-300 transition-colors"
-              data-sveltekit-reload
             >
               <div class="card-body p-4">
                 <div class="flex items-center gap-2">
@@ -119,96 +118,50 @@
               </div>
             </div>
           </div>
+          {#if children.length > 0}
+            <div
+              class="absolute h-6 w-0.5 bg-base-content/20 left-4 -bottom-6"
+            />
+          {/if}
         </div>
 
         <!-- Child Functions -->
-        {#await children}
-          <div>Loading children...</div>
-        {:then childrenData}
-          {#if childrenData.length > 0}
-            <div>
-              <h3 class="text-sm font-semibold text-base-content/70 mb-2">
-                Child Functions ({childrenData.length})
-              </h3>
-              <div class="space-y-2 flex flex-col gap-2">
-                {#each childrenData as child}
-                  <a href="/functions/{child.funcId}" data-sveltekit-reload>
-                    <div
-                      class="card bg-base-100 hover:bg-base-300 transition-colors"
-                    >
-                      <div class="card-body p-4">
-                        <div
-                          class="flex justify-between items-center flex-wrap"
-                        >
-                          <div>
-                            <div class="font-semibold">{child.funcName}</div>
-                            <div class="text-sm opacity-70">{child.slug}</div>
-                          </div>
-                          <div class="flex items-center gap-2">
-                            {#if !child.finished}
-                              <span class="badge badge-info">Running</span>
-                            {:else if child.success}
-                              <span class="badge badge-success">Success</span>
-                            {:else}
-                              <span class="badge badge-error">Failed</span>
-                            {/if}
-                          </div>
-                        </div>
+        {#if children.length > 0}
+          <div>
+            <h3 class="text-sm font-semibold text-base-content/70 mb-2">
+              Child Functions ({children.length})
+            </h3>
+            <div class="space-y-2">
+              {#each children as child}
+                <a
+                  href="/functions/{child.funcId}"
+                  class="card bg-base-100 hover:bg-base-300 transition-colors"
+                >
+                  <div class="card-body p-4">
+                    <div class="flex justify-between items-center">
+                      <div>
+                        <div class="font-semibold">{child.funcName}</div>
+                        <div class="text-sm opacity-70">{child.slug}</div>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        {#if !child.finished}
+                          <span class="badge badge-info">Running</span>
+                        {:else if child.success}
+                          <span class="badge badge-success">Success</span>
+                        {:else}
+                          <span class="badge badge-error">Failed</span>
+                        {/if}
                       </div>
                     </div>
-                  </a>
-                {/each}
-              </div>
+                  </div>
+                </a>
+              {/each}
             </div>
-          {/if}
-        {/await}
+          </div>
+        {/if}
       </div>
     </div>
   </div>
 
-  <div class="mt-8">
-    <h2 class="text-2xl font-bold mb-4">Function Logs</h2>
-    <div class="space-y-4">
-      {#await logs}
-        <div>Loading logs...</div>
-      {:then logsData}
-        <div>
-          {#each logsData as log}
-            <div class="card bg-base-100">
-              <div class="card-body">
-                <div class="flex items-center gap-4">
-                  <span class="text-sm text-base-content/60">
-                    {new Date(log.rowDate).toLocaleString()}
-                  </span>
-                  <span
-                    class="badge"
-                    class:badge-info={log.type === "INFO"}
-                    class:badge-warning={log.type === "WARNING"}
-                    class:badge-error={log.type === "ERROR"}
-                  >
-                    {log.type}
-                  </span>
-                </div>
-                <p class="whitespace-pre-wrap">{log.message}</p>
-                {#if log.traceBack}
-                  <div class="mt-4">
-                    <div class="collapse collapse-plus bg-base-200">
-                      <input type="checkbox" />
-                      <div class="collapse-title font-medium">
-                        View Traceback
-                      </div>
-                      <div class="collapse-content">
-                        <pre
-                          class="text-sm whitespace-pre-wrap">{log.traceBack}</pre>
-                      </div>
-                    </div>
-                  </div>
-                {/if}
-              </div>
-            </div>
-          {/each}
-        </div>
-      {/await}
-    </div>
-  </div>
+  <FunctionLogs funcId={func.funcId} initialLogs={logs} />
 </div>
