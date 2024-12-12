@@ -31,7 +31,13 @@
     </div>
   </div>
 
-  <FunctionLogs funcId={func.funcId} initialLogs={logs} showHeader={false} />
+  <FunctionLogs
+    funcId={func.funcId}
+    initialLogs={logs}
+    showHeader={false}
+    isFinished={func.finished}
+    pollingInterval={1000}
+  />
 </div>
 
 <style>

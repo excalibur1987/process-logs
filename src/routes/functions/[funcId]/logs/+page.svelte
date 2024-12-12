@@ -95,5 +95,9 @@
     </div>
   </div>
 
-  <FunctionLogs funcId={func.funcId} initialLogs={logs} />
+  <FunctionLogs
+    funcId={func.funcId}
+    initialLogs={logs}
+    isFinished={func.finished}
+  />
 </div>

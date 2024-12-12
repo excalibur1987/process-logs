@@ -16,15 +16,25 @@ import {
 export const load: PageServerLoad = async ({ params }) => {
   try {
     // Get function details with header information
+
     let func: FunctionInstance;
-    if (isNaN(parseInt(params.funcId))) {
+
+    if (parseInt(params.funcId).toString().length !== params.funcId.length) {
       func = await getFunctionInstanceBySlug(params.funcId);
     } else {
       func = await getFunctionInstanceById(parseInt(params.funcId));
     }
 
     if (!func) {
-      throw error(404, "Function not found");
+      return {
+        function: {
+          funcId: params.funcId,
+          funcName: "",
+          finished: false,
+          success: false,
+        },
+        logs: undefined,
+      };
     }
 
     // Get logs

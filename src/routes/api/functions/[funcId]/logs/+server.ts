@@ -2,19 +2,26 @@ import { json } from "@sveltejs/kit";
 import { db } from "$lib/db";
 import { functionLogs } from "$lib/db/schema";
 import { eq, asc } from "drizzle-orm";
+import {
+  getFunctionInstanceById,
+  getFunctionInstanceBySlug,
+  type FunctionInstance,
+} from "$lib/db/utils";
 
 export async function GET({ params }) {
-  const funcId = parseInt(params.funcId);
+  let func: FunctionInstance;
 
-  if (isNaN(funcId)) {
-    return new Response("Invalid function ID", { status: 400 });
+  if (parseInt(params.funcId).toString().length !== params.funcId.length) {
+    func = await getFunctionInstanceBySlug(params.funcId);
+  } else {
+    func = await getFunctionInstanceById(parseInt(params.funcId));
   }
 
   try {
     const logs = await db
       .select()
       .from(functionLogs)
-      .where(eq(functionLogs.funcId, funcId))
+      .where(eq(functionLogs.funcId, func.funcId))
       .orderBy(asc(functionLogs.rowDate));
 
     return json(logs);

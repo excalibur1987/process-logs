@@ -170,6 +170,11 @@
         View Full Logs
       </a>
     </div>
-    <FunctionLogs funcId={func.funcId} initialLogs={logs} showHeader={false} />
+    <FunctionLogs
+      funcId={func.funcId}
+      initialLogs={logs}
+      showHeader={false}
+      isFinished={func.finished}
+    />
   </div>
 </div>

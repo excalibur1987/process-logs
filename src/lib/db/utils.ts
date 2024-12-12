@@ -19,7 +19,6 @@ export type FunctionInstance = {
 export async function getFunctionInstanceBySlug(
   slug: string
 ): Promise<FunctionInstance> {
-  console.log("🚀 ~ file: utils.ts:22 ~ slug:", slug);
   const funcQuery = db
     .select({
       funcId: functionProgress.funcId,
@@ -40,7 +39,6 @@ export async function getFunctionInstanceBySlug(
       eq(functionProgress.funcHeaderId, functionHeaders.id)
     )
     .where(eq(functionProgress.slug, slug));
-  console.log("🚀 ~ file: utils.ts:44 ~ funcQuery:", funcQuery.toSQL());
   const [func] = await funcQuery.execute();
   return func;
 }
