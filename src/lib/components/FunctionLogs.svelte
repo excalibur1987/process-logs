@@ -5,9 +5,10 @@
   interface Props {
     funcId: number;
     initialLogs?: Promise<FunctionLog[]>;
+    showHeader?: boolean;
   }
 
-  let { funcId, initialLogs }: Props = $props();
+  let { funcId, initialLogs, showHeader = false }: Props = $props();
   let logs = $state<FunctionLog[]>([]);
   let loading = $state(!initialLogs);
   let error = $state<string | null>(null);
@@ -38,8 +39,10 @@
   onMount(fetchLogs);
 </script>
 
-<div class="mt-8">
-  <h2 class="text-2xl font-bold mb-4">Function Logs</h2>
+<div class={showHeader ? "mt-8" : ""}>
+  {#if showHeader}
+    <h2 class="text-2xl font-bold mb-4">Function Logs</h2>
+  {/if}
 
   {#if loading}
     <div class="flex justify-center p-8">

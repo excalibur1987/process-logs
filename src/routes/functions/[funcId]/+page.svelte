@@ -163,5 +163,13 @@
     </div>
   </div>
 
-  <FunctionLogs funcId={func.funcId} initialLogs={logs} />
+  <div class="mt-8">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold">Function Logs</h2>
+      <a href="/functions/{func.funcId}/logs" class="btn btn-outline">
+        View Full Logs
+      </a>
+    </div>
+    <FunctionLogs funcId={func.funcId} initialLogs={logs} showHeader={false} />
+  </div>
 </div>
