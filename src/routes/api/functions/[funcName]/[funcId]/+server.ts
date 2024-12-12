@@ -55,7 +55,9 @@ export async function PATCH({ params, request }) {
 
   try {
     const data = await request.json();
-    const { finished, success, endDate } = requestSchema.parse(data);
+    const { finished, success, endDate } = requestSchema.parse(
+      JSON.parse(data)
+    );
 
     const [updatedFunc] = await db
       .update(functionProgress)
