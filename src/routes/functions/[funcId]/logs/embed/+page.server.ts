@@ -4,38 +4,24 @@ import {
   functionHeaders,
   functionLogs,
 } from "$lib/db/schema";
-import { eq, asc } from "drizzle-orm";
+import { eq, or, asc, SQL } from "drizzle-orm";
 import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
+import {
+  getFunctionInstanceById,
+  getFunctionInstanceBySlug,
+  type FunctionInstance,
+} from "$lib/db/utils";
 
 export const load: PageServerLoad = async ({ params }) => {
-  const funcId = parseInt(params.funcId);
-
-  if (isNaN(funcId)) {
-    throw error(400, "Invalid function ID");
-  }
-
   try {
     // Get function details with header information
-    const [func] = await db
-      .select({
-        funcId: functionProgress.funcId,
-        parentId: functionProgress.parentId,
-        slug: functionProgress.slug,
-        startDate: functionProgress.startDate,
-        endDate: functionProgress.endDate,
-        finished: functionProgress.finished,
-        success: functionProgress.success,
-        source: functionProgress.source,
-        funcName: functionHeaders.funcName,
-        headerSlug: functionHeaders.funcSlug,
-      })
-      .from(functionProgress)
-      .innerJoin(
-        functionHeaders,
-        eq(functionProgress.funcHeaderId, functionHeaders.id)
-      )
-      .where(eq(functionProgress.funcId, funcId));
+    let func: FunctionInstance;
+    if (isNaN(parseInt(params.funcId))) {
+      func = await getFunctionInstanceBySlug(params.funcId);
+    } else {
+      func = await getFunctionInstanceById(parseInt(params.funcId));
+    }
 
     if (!func) {
       throw error(404, "Function not found");
@@ -45,7 +31,7 @@ export const load: PageServerLoad = async ({ params }) => {
     const logs = db
       .select()
       .from(functionLogs)
-      .where(eq(functionLogs.funcId, funcId))
+      .where(eq(functionLogs.funcId, func.funcId))
       .orderBy(asc(functionLogs.rowDate));
 
     return {

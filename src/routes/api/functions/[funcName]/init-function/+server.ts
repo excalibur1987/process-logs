@@ -6,7 +6,7 @@ import { eq, sql, type InferSelectModel } from "drizzle-orm";
 import { json } from "@sveltejs/kit";
 
 const requestSchema = z.object({
-  slug: z.string(),
+  funcSlug: z.string(),
   parentId: z.number().nullable().optional(),
   args: z
     .any()
@@ -24,7 +24,7 @@ export async function POST({ params, request }) {
     const reqJson = await request.json();
 
     const parsed = requestSchema.parse(JSON.parse(reqJson));
-    const { slug, parentId, args, source } = parsed;
+    const { funcSlug, parentId, args, source } = parsed;
 
     const [funcHeader] = await db
       .select()
@@ -52,7 +52,7 @@ export async function POST({ params, request }) {
     const [{ funcId }] = await db
       .insert(functionProgress)
       .values({
-        slug: slug,
+        slug: funcSlug,
         funcHeaderId: funcHeader.id,
         parentId: parentFunction?.funcId ?? null,
         args: args,

@@ -83,7 +83,6 @@ export async function POST({ params, request }) {
     message: z.string(),
     traceBack: z.string().optional().nullable(),
     rowDate: z.date({ coerce: true }).optional().nullable(),
-    funcId: z.number(),
   });
 
   const funcId = parseInt(params.funcId);
