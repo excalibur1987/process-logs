@@ -1,7 +1,7 @@
 import { db } from '$lib/db';
 import { functionHeaders, functionProgress } from '$lib/db/schema';
 import { format } from 'date-fns';
-import { and, between, desc, eq, ilike, sql } from 'drizzle-orm';
+import { and, between, desc, eq, sql } from 'drizzle-orm';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {
@@ -79,6 +79,7 @@ export const actions = {
 	search: async ({ request, url }) => {
 		const formData = await request.formData();
 		const funcName = formData.get('funcName')?.toString() || '';
+		console.log('🚀 ~ file: +page.server.ts:82 ~ search: ~ funcName:', funcName);
 		const startDate = formData.get('startDate')?.toString();
 		const endDate = formData.get('endDate')?.toString();
 		const status = formData.get('status')?.toString() || 'all';
@@ -86,14 +87,14 @@ export const actions = {
 		const limit = parseInt(formData.get('limit')?.toString() || '10');
 		const offset = (page - 1) * limit;
 
-		const filters = [ilike(functionProgress.slug, `%${funcName}%`)];
+		const filters = [eq(functionProgress.funcHeaderId, Number(funcName))];
 
 		if (startDate && endDate) {
 			filters.push(
 				between(
 					sql<Date>`${functionProgress.startDate}::date`,
-					new Date(startDate),
-					new Date(endDate)
+					new Date(startDate).toISOString(),
+					new Date(endDate).toISOString()
 				)
 			);
 		}
@@ -107,7 +108,7 @@ export const actions = {
 			.then(([{ count }]) => Number(count));
 
 		// Get paginated results
-		const results = await db
+		const resultsQuery = db
 			.select({
 				funcId: functionProgress.funcId,
 				parentId: functionProgress.parentId,
@@ -128,6 +129,8 @@ export const actions = {
 			.orderBy(desc(functionProgress.startDate))
 			.limit(limit)
 			.offset(offset);
+
+		const results = await resultsQuery.execute();
 
 		// Filter by status on the server side
 		const filteredResults =

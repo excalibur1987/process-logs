@@ -4,17 +4,22 @@
 	import SearchSelect from '$lib/components/SearchSelect.svelte';
 	import type { FunctionHeader } from '$lib/types';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	let loading = $state(false);
 	let selectedFunction = $state<FunctionHeader | undefined>(undefined);
-	let currentPage = $state(parseInt(new URL(window.location.href).searchParams.get('page') || '1'));
+	let currentPage = $state(parseInt($page.url.searchParams.get('page') || '1'));
 	const limit = 10;
 
 	$effect(() => {
+		console.log('🚀 ~ file: +page.svelte:17 ~ $effect ~ selectedFunction:', selectedFunction);
+	});
+
+	$effect(() => {
 		if (!loading) {
-			const url = new URL(window.location.href);
+			const url = $page.url;
 			url.searchParams.set('page', currentPage.toString());
 			goto(url.toString(), { replaceState: true });
 		}
@@ -55,6 +60,8 @@
 						{selectedFunction.funcName} ({selectedFunction.funcSlug})
 					</span>
 				{/snippet}
+				<input type="hidden" name="funcHeaderId" value={selectedFunction?.id} />
+				<input type="hidden" name="funcSlug" value={selectedFunction?.funcSlug} />
 				<SearchSelect
 					name="funcName"
 					placeholder="Search for a function..."
