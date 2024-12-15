@@ -24,6 +24,7 @@
         "vite": "^5.4.4"
     },
     "dependencies": {
+        "@sveltejs/adapter-node": "^5.2.10",
         "@types/lodash": "^4.14.202",
         "@types/pg": "^8.10.9",
         "date-fns": "^2.30.0",
