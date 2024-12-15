@@ -9,7 +9,7 @@ import { error } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params, url }) => {
+export const load: PageServerLoad = async ({ params, fetch, url }) => {
 	const includeLogs = (url.searchParams.get('logs') || 'true') === 'true';
 
 	try {
@@ -43,8 +43,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 
 		// Get logs if requested
 		// Get logs
-		const response = await fetch(`/api/functions/${func.funcId}/logs`);
-		const logs = await response.json();
+		const logs = fetch(`/api/functions/${func.funcId}/logs`).then((response) => response.json());
 
 		return {
 			function: func,

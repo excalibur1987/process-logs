@@ -26,8 +26,7 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 		}
 
 		// Get logs
-		const response = await fetch(`/api/functions/${func.funcId}/logs`);
-		const logs = await response.json();
+		const logs = fetch(`/api/functions/${func.funcId}/logs`).then((response) => response.json());
 
 		return {
 			function: func,
