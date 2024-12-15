@@ -44,7 +44,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
       .from(functionProgress)
       .innerJoin(
         functionHeaders,
-        eq(functionProgress.funcHeaderId, functionHeaders.id)
+        eq(functionProgress.funcHeaderId, functionHeaders.id),
       )
       .where(eq(functionProgress.parentId, func.funcId));
 

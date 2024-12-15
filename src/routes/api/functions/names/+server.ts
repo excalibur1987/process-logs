@@ -17,9 +17,11 @@ export async function GET({ url }) {
       funcSlug: functionHeaders.funcSlug,
     })
     .from(functionHeaders)
-    .where(search.trim()
-    ? ilike(functionHeaders.funcName, `%${search}%`)
-    : undefined)
+    .where(
+      search.trim()
+        ? ilike(functionHeaders.funcName, `%${search}%`)
+        : undefined,
+    )
     .orderBy(desc(functionHeaders.id))
     .limit(limit)
     .offset(offset);
@@ -32,7 +34,7 @@ export async function GET({ url }) {
       .where(
         search.trim()
           ? ilike(functionHeaders.funcName, `%${search}%`)
-          : undefined
+          : undefined,
       )
       .then(([{ count }]) => Number(count)),
   ]);

@@ -23,7 +23,7 @@ export async function POST({ request }) {
         type: z.string(),
         message: z.string(),
         traceBack: z.string(),
-      })
+      }),
     ),
   });
 
@@ -62,7 +62,7 @@ export async function POST({ request }) {
         type: log.type,
         message: log.message,
         traceBack: log.traceBack,
-      }))
+      })),
     );
   }
 
@@ -83,7 +83,7 @@ export async function GET({ url }) {
     or(
       ilike(functionHeaders.funcName, `${funcName ? `%${funcName}%` : ""}`),
       ilike(functionProgress.slug, `${slug ? `%${slug}%` : ""}`),
-      eq(sql<string>`${funcName || ""}`, sql`''`)
+      eq(sql<string>`${funcName || ""}`, sql`''`),
     ),
   ];
 
@@ -92,8 +92,8 @@ export async function GET({ url }) {
       between(
         sql<Date>`${functionProgress.startDate}::date`,
         new Date(startDate),
-        new Date(endDate)
-      )
+        new Date(endDate),
+      ),
     );
   }
 
@@ -120,7 +120,7 @@ export async function GET({ url }) {
     .from(functionProgress)
     .innerJoin(
       functionHeaders,
-      eq(functionProgress.funcHeaderId, functionHeaders.id)
+      eq(functionProgress.funcHeaderId, functionHeaders.id),
     )
     .where(and(...filters));
 
@@ -130,7 +130,7 @@ export async function GET({ url }) {
     .from(functionProgress)
     .innerJoin(
       functionHeaders,
-      eq(functionProgress.funcHeaderId, functionHeaders.id)
+      eq(functionProgress.funcHeaderId, functionHeaders.id),
     )
     .where(and(...filters))
     .then(([{ count }]) => Number(count));

@@ -1,8 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import type { FunctionLog } from "$lib/types";
-  import { boolean } from "drizzle-orm/mysql-core";
-  import { invalidateAll } from "$app/navigation";
   import type { FunctionInstance } from "$lib/db/utils";
 
   interface Props {

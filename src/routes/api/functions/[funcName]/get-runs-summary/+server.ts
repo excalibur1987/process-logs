@@ -21,7 +21,7 @@ export async function GET({ params, request }) {
 
   try {
     const { period, interval, funcSlug, args } = requestSchema.parse(
-      Object.fromEntries(new URL(request.url).searchParams.entries())
+      Object.fromEntries(new URL(request.url).searchParams.entries()),
     );
     const [funcHeader] = await db
       .select()
@@ -40,7 +40,7 @@ export async function GET({ params, request }) {
     };
 
     const startDate = new Date(
-      new Date().getTime() - interval * intervals[period]
+      new Date().getTime() - interval * intervals[period],
     );
 
     const query = db
@@ -61,12 +61,12 @@ export async function GET({ params, request }) {
           eq(functionProgress.funcName, funcHeader.funcName),
           gte(functionProgress.startDate, startDate.toISOString()),
           sql`${functionProgress.args}::text  = ${JSON.stringify(
-            args || "{}"
+            args || "{}",
           )}::text`,
           sql`${JSON.stringify(args || "{}")}::text = ${
             functionProgress.args
-          }::text`
-        )
+          }::text`,
+        ),
       );
 
     const [runs] = await query.execute();

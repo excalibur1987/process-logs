@@ -23,14 +23,14 @@ export const load: PageServerLoad = async ({ url }) => {
     .from(functionProgress)
     .innerJoin(
       functionHeaders,
-      eq(functionProgress.funcHeaderId, functionHeaders.id)
+      eq(functionProgress.funcHeaderId, functionHeaders.id),
     )
     .where(
       between(
         functionProgress.startDate,
         new Date(defaultStartDate).toISOString(),
-        new Date(defaultEndDate).toISOString()
-      )
+        new Date(defaultEndDate).toISOString(),
+      ),
     )
     .then(([{ count }]) => Number(count));
 
@@ -53,14 +53,14 @@ export const load: PageServerLoad = async ({ url }) => {
     .from(functionProgress)
     .innerJoin(
       functionHeaders,
-      eq(functionProgress.funcHeaderId, functionHeaders.id)
+      eq(functionProgress.funcHeaderId, functionHeaders.id),
     )
     .where(
       between(
         functionProgress.startDate,
         new Date(defaultStartDate).toISOString(),
-        new Date(defaultEndDate).toISOString()
-      )
+        new Date(defaultEndDate).toISOString(),
+      ),
     )
     .orderBy(desc(functionProgress.startDate))
     .limit(limit)
@@ -99,8 +99,8 @@ export const actions = {
         between(
           sql<Date>`${functionProgress.startDate}::date`,
           new Date(startDate),
-          new Date(endDate)
-        )
+          new Date(endDate),
+        ),
       );
     }
 
@@ -110,7 +110,7 @@ export const actions = {
       .from(functionProgress)
       .innerJoin(
         functionHeaders,
-        eq(functionProgress.funcHeaderId, functionHeaders.id)
+        eq(functionProgress.funcHeaderId, functionHeaders.id),
       )
       .where(and(...filters))
       .then(([{ count }]) => Number(count));
@@ -134,7 +134,7 @@ export const actions = {
       .from(functionProgress)
       .innerJoin(
         functionHeaders,
-        eq(functionProgress.funcHeaderId, functionHeaders.id)
+        eq(functionProgress.funcHeaderId, functionHeaders.id),
       )
       .where(and(...filters))
       .orderBy(desc(functionProgress.startDate))

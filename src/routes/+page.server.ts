@@ -32,7 +32,7 @@ export const load: PageServerLoad = async () => {
     .from(functionProgress)
     .innerJoin(
       functionHeaders,
-      eq(functionProgress.funcHeaderId, functionHeaders.id)
+      eq(functionProgress.funcHeaderId, functionHeaders.id),
     )
     .where(isNull(functionProgress.parentId))
     .orderBy(desc(functionProgress.startDate))

@@ -24,12 +24,12 @@ export const functionProgressRelations = relations(
       fields: [functionProgress.funcHeaderId],
       references: [functionHeaders.id],
     }),
-  })
+  }),
 );
 
 export const functionHeadersRelations = relations(
   functionHeaders,
   ({ many }) => ({
     functionProgresses: many(functionProgress),
-  })
+  }),
 );

@@ -30,7 +30,7 @@ export async function POST({ params, request }) {
       .select()
       .from(functionHeaders)
       .where(
-        eq(sql<string>`slugify(${functionHeaders.funcName})`, params.funcName)
+        eq(sql<string>`slugify(${functionHeaders.funcName})`, params.funcName),
       );
     if (!funcHeader) {
       return json({ error: "Function not found" }, { status: 404 });

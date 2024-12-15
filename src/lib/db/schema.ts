@@ -29,7 +29,7 @@ export const functionLogs = pgTable(
       foreignColumns: [functionProgress.funcId],
       name: "fk_function_logs_func_id_function_progress",
     }),
-  ]
+  ],
 );
 
 export const functionProgress = pgTable(
@@ -60,7 +60,7 @@ export const functionProgress = pgTable(
       foreignColumns: [functionHeaders.id],
       name: "function_progress_function_headers_fk",
     }),
-  ]
+  ],
 );
 
 export const functionHeaders = pgTable("function_headers", {
