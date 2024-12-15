@@ -13,14 +13,18 @@
 
 	let { func, initialLogs, showHeader = false, pollingInterval }: Props = $props();
 
-	let logs = $state<FunctionLog[]>([]);
+	let logs = $state<
+		(FunctionLog & {
+			function: { funcId: number; funcName: string; funcSlug: string; parentId: number | null };
+		})[]
+	>([]);
 	let loading = $state(!initialLogs);
 	let error = $state<string | null>(null);
 	let funcFinished = $state(func?.finished);
 	let funcId = $state(func?.funcId);
 	let funcSlug = $state(func?.headerSlug);
 
-	// Track progress states
+	// Track progress states by function ID
 	interface ProgressState {
 		progId: string;
 		title: string;
@@ -31,7 +35,7 @@
 		lastUpdated: Date;
 	}
 
-	let progressStates = $state<Record<string, ProgressState>>({});
+	let progressStatesByFunc = $state<Record<number, Record<string, ProgressState>>>({});
 
 	// Update progress state when new logs come in
 	$effect(() => {
@@ -40,7 +44,10 @@
 				try {
 					const progressData = JSON.parse(log.message);
 					if (progressData.prog_id) {
-						progressStates[progressData.prog_id] = {
+						if (!progressStatesByFunc[log.funcId]) {
+							progressStatesByFunc[log.funcId] = {};
+						}
+						progressStatesByFunc[log.funcId][progressData.prog_id] = {
 							progId: progressData.prog_id,
 							title: progressData.title,
 							description: progressData.description,
@@ -170,36 +177,46 @@
 			<div class="p-8 text-center text-base-content/60">No logs found for this function</div>
 		{:else}
 			<!-- Progress Bars Section -->
-			{#if Object.keys(progressStates).length > 0}
-				<div class="mb-6 space-y-4 rounded-lg bg-base-200 p-4">
-					<h3 class="font-semibold">Progress Tracking</h3>
-					{#each Object.values(progressStates) as progress}
-						<div class="space-y-2">
-							<div class="flex items-center justify-between">
-								<div>
-									<div class="font-medium">{progress.title}</div>
-									<div class="text-sm text-base-content/70">{progress.description}</div>
-								</div>
-								<div class="text-sm font-medium">
-									{Math.round((progress.value / progress.max) * 100)}%
-								</div>
-							</div>
-							<div class="w-full">
-								<progress
-									class="progress progress-primary w-full"
-									value={progress.value}
-									max={progress.max}
-								></progress>
-							</div>
-							{#if progress.duration}
-								<div class="text-xs text-base-content/60">
-									Estimated time remaining: {Math.ceil(progress.duration)} seconds
-								</div>
+			{#each Object.entries(progressStatesByFunc) as [funcId, progressStates]}
+				{#if Object.keys(progressStates).length > 0}
+					<div class="mb-6 space-y-4 rounded-lg bg-base-200 p-4">
+						<div class="mb-2">
+							<h3 class="font-semibold">
+								Progress Tracking - {logs.find((l) => l.funcId === parseInt(funcId))?.function
+									.funcName}
+							</h3>
+							{#if parseInt(funcId) !== func.funcId}
+								<div class="text-sm text-base-content/70">Child Function</div>
 							{/if}
 						</div>
-					{/each}
-				</div>
-			{/if}
+						{#each Object.values(progressStates) as progress}
+							<div class="space-y-2">
+								<div class="flex items-center justify-between">
+									<div>
+										<div class="font-medium">{progress.title}</div>
+										<div class="text-sm text-base-content/70">{progress.description}</div>
+									</div>
+									<div class="text-sm font-medium">
+										{Math.round((progress.value / progress.max) * 100)}%
+									</div>
+								</div>
+								<div class="w-full">
+									<progress
+										class="progress progress-primary w-full"
+										value={progress.value}
+										max={progress.max}
+									></progress>
+								</div>
+								{#if progress.duration}
+									<div class="text-xs text-base-content/60">
+										Estimated time remaining: {Math.ceil(progress.duration)} seconds
+									</div>
+								{/if}
+							</div>
+						{/each}
+					</div>
+				{/if}
+			{/each}
 
 			<div class="space-y-4">
 				{#each logs as log}
@@ -214,15 +231,23 @@
 							class:border-primary={!['INFO', 'SUCCESS', 'WARNING', 'ERROR', 'FINAL'].includes(
 								type
 							)}
+							class:ml-8={log.funcId !== func.funcId}
 						>
 							<div class="card-body p-4">
 								<div class="flex items-center gap-4">
+									<!-- Function Name (for child functions) -->
+									{#if log.funcId !== func.funcId}
+										<span class="badge badge-ghost gap-1">
+											{log.function.funcName}
+										</span>
+									{/if}
+
 									<!-- Timestamp -->
 									<span class="font-mono text-sm text-base-content/60">
 										{new Date(log.rowDate).toLocaleString()}
 									</span>
 
-									<!-- Log Type Badge with Icon -->
+									<!-- Log Type Badge -->
 									<span
 										class="badge gap-1"
 										class:badge-info={type === 'INFO'}
