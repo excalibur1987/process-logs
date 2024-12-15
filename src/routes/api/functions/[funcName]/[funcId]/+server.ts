@@ -3,7 +3,7 @@ import { functionLogs, functionProgress, functionProgressTracking } from '$lib/d
 import type { FunctionInstance } from '$lib/db/utils';
 import { getFunctionInstanceById, getFunctionInstanceBySlug } from '$lib/db/utils';
 import { json } from '@sveltejs/kit';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 export async function GET({ params }) {
@@ -162,18 +162,37 @@ async function progressLogger(func: FunctionInstance, message: object) {
 	try {
 		const progressData = schema.parse(message);
 
-		// Update or insert progress tracking
-		await db.insert(functionProgressTracking).values({
-			funcId: func.funcId,
-			progId: progressData.prog_id,
-			title: progressData.title,
-			description: progressData.description,
-			currentValue: progressData.value,
-			maxValue: progressData.max,
-			duration: progressData.duration,
-			lastUpdated: new Date().toISOString(),
-			completed: progressData.value >= progressData.max
-		});
+		let [progress] = await db
+			.select()
+			.from(functionProgressTracking)
+			.where(
+				and(
+					eq(functionProgressTracking.funcId, func.funcId),
+					eq(functionProgressTracking.progId, progressData.prog_id)
+				)
+			)
+			.limit(1);
+		if (progress) {
+			await db
+				.update(functionProgressTracking)
+				.set({
+					currentValue: progressData.value.toFixed(2),
+					lastUpdated: new Date().toISOString()
+				})
+				.where(eq(functionProgressTracking.id, progress.id));
+		} else {
+			await db.insert(functionProgressTracking).values({
+				funcId: func.funcId,
+				progId: progressData.prog_id,
+				title: progressData.title,
+				description: progressData.description,
+				currentValue: progressData.value.toFixed(2),
+				maxValue: progressData.max.toFixed(2),
+				duration: progressData.duration?.toFixed(2),
+				lastUpdated: new Date().toISOString(),
+				completed: progressData.value >= progressData.max
+			});
+		}
 
 		return {
 			success: true,

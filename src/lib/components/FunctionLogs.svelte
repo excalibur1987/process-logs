@@ -15,7 +15,7 @@
 
 	let logs = $state<
 		(FunctionLog & {
-			function: { funcId: number; funcName: string; funcSlug: string; parentId: number | null };
+			function?: { funcId: number; funcName: string; funcSlug: string; parentId: number | null };
 		})[]
 	>([]);
 	let loading = $state(!initialLogs);
@@ -182,8 +182,8 @@
 					<div class="mb-6 space-y-4 rounded-lg bg-base-200 p-4">
 						<div class="mb-2">
 							<h3 class="font-semibold">
-								Progress Tracking - {logs.find((l) => l.funcId === parseInt(funcId))?.function
-									.funcName}
+								Progress Tracking - {logs?.find((l) => l.funcId === parseInt(funcId))?.function
+									?.funcName}
 							</h3>
 							{#if parseInt(funcId) !== func.funcId}
 								<div class="text-sm text-base-content/70">Child Function</div>
@@ -238,7 +238,7 @@
 									<!-- Function Name (for child functions) -->
 									{#if log.funcId !== func.funcId}
 										<span class="badge badge-ghost gap-1">
-											{log.function.funcName}
+											{log.function?.funcName}
 										</span>
 									{/if}
 

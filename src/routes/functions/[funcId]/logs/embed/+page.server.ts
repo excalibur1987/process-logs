@@ -1,15 +1,12 @@
-import { db } from '$lib/db';
-import { functionLogs } from '$lib/db/schema';
 import {
 	getFunctionInstanceById,
 	getFunctionInstanceBySlug,
 	type FunctionInstance
 } from '$lib/db/utils';
 import { error } from '@sveltejs/kit';
-import { asc, eq } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, fetch }) => {
 	try {
 		// Get function details with header information
 
@@ -29,11 +26,8 @@ export const load: PageServerLoad = async ({ params }) => {
 		}
 
 		// Get logs
-		const logs = db
-			.select()
-			.from(functionLogs)
-			.where(eq(functionLogs.funcId, func.funcId))
-			.orderBy(asc(functionLogs.rowDate));
+		const response = await fetch(`/api/functions/${func.funcId}/logs`);
+		const logs = await response.json();
 
 		return {
 			function: func,

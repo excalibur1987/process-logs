@@ -1,12 +1,12 @@
 import { db } from '$lib/db';
-import { functionHeaders, functionLogs, functionProgress } from '$lib/db/schema';
+import { functionHeaders, functionProgress } from '$lib/db/schema';
 import {
 	getFunctionInstanceById,
 	getFunctionInstanceBySlug,
 	type FunctionInstance
 } from '$lib/db/utils';
 import { error } from '@sveltejs/kit';
-import { asc, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, url }) => {
@@ -42,13 +42,9 @@ export const load: PageServerLoad = async ({ params, url }) => {
 			.where(eq(functionProgress.parentId, func.funcId));
 
 		// Get logs if requested
-		const logs = includeLogs
-			? db
-					.select()
-					.from(functionLogs)
-					.where(eq(functionLogs.funcId, func.funcId))
-					.orderBy(asc(functionLogs.rowDate))
-			: undefined;
+		// Get logs
+		const response = await fetch(`/api/functions/${func.funcId}/logs`);
+		const logs = await response.json();
 
 		return {
 			function: func,
