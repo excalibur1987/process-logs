@@ -1,13 +1,15 @@
 import { functionHeaders, functionProgress } from '$lib/db/schema';
 
 import { db } from '$lib/db';
+import type { FunctionInstance } from '$lib/db/utils.js';
+import { getFunctionInstanceById, getFunctionInstanceBySlug } from '$lib/db/utils.js';
 import { json } from '@sveltejs/kit';
-import { eq, sql, type InferSelectModel } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 const requestSchema = z.object({
 	funcSlug: z.string(),
-	parentId: z.number().nullable().optional(),
+	parentId: z.string().nullable().optional(),
 	args: z
 		.any()
 		.optional()
@@ -34,16 +36,12 @@ export async function POST({ params, request }) {
 			return json({ error: 'Function not found' }, { status: 404 });
 		}
 
-		let parentFunction: InferSelectModel<typeof functionProgress> | null = null;
-
+		let parentFunction: FunctionInstance | null = null;
 		if (parentId) {
-			const result = await db
-				.select()
-				.from(functionProgress)
-				.where(eq(functionProgress.funcId, parentId));
-
-			if (result.length > 0) {
-				parentFunction = result[0];
+			if (parseInt(parentId).toString().length !== parentId.length) {
+				parentFunction = await getFunctionInstanceBySlug(parentId);
+			} else {
+				parentFunction = await getFunctionInstanceById(parseInt(parentId));
 			}
 		}
 

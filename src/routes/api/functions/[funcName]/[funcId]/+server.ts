@@ -76,13 +76,6 @@ export async function PATCH({ params, request }) {
 
 // Endpoint to add logs to a function
 export async function POST({ params, request }) {
-	const requestSchema = z.object({
-		type: z.string(),
-		message: z.string(),
-		traceBack: z.string().optional().nullable(),
-		rowDate: z.date({ coerce: true }).optional().nullable()
-	});
-
 	const funcId = parseInt(params.funcId);
 
 	if (isNaN(funcId)) {
@@ -90,15 +83,26 @@ export async function POST({ params, request }) {
 	}
 
 	try {
-		const data = await request.json();
-		const { type, message, traceBack, rowDate } = requestSchema.parse(JSON.parse(data));
+		const data = JSON.parse(await request.text());
+		let {
+			type,
+			message = '',
+			traceBack = null,
+			rowDate = new Date().toISOString()
+		} = JSON.parse(data) as {
+			type: string;
+			message: string;
+			traceBack: string | null;
+			rowDate: Date;
+		};
+		rowDate = new Date(rowDate);
 
 		const [log] = await db
 			.insert(functionLogs)
 			.values({
 				funcId,
 				type,
-				message,
+				message: message.toString(),
 				traceBack,
 				rowDate: rowDate ? rowDate.toISOString() : new Date().toISOString()
 			})
