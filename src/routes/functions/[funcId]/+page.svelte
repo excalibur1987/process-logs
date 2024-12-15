@@ -121,7 +121,7 @@
           {#if children.length > 0}
             <div
               class="absolute h-6 w-0.5 bg-base-content/20 left-4 -bottom-6"
-            />
+            ></div>
           {/if}
         </div>
 
