@@ -58,7 +58,7 @@ export async function GET({ params, request }) {
       .from(functionProgress)
       .where(
         and(
-          eq(functionProgress.funcName, funcHeader.funcName),
+          eq(functionProgress.funcId, funcHeader.id),
           gte(functionProgress.startDate, startDate.toISOString()),
           sql`${functionProgress.args}::text  = ${JSON.stringify(
             args || "{}",
