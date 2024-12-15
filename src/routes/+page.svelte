@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import type { PageData } from './$types';
+	import { invalidateAll } from '$app/navigation';
 
 	interface Props {
 		data: PageData;
@@ -7,31 +9,57 @@
 
 	let { data }: Props = $props();
 	const { summary } = data;
+
+	// Get current date for search links
+	const today = new Date();
+	const sevenDaysAgo = new Date();
+	sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+	const defaultStartDate = sevenDaysAgo.toISOString().split('T')[0];
+	const defaultEndDate = today.toISOString().split('T')[0];
+
+	onMount(() => {
+		setTimeout(() => {
+			invalidateAll();
+		}, 10000);
+	});
 </script>
 
 <div class="p-8">
 	<h1 class="mb-8 text-3xl font-bold">Function Execution Summary</h1>
 
 	<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
-		<div class="stat rounded-box bg-base-200">
+		<a
+			href="/search?startDate={defaultStartDate}&endDate={defaultEndDate}"
+			class="stat rounded-box bg-base-200 transition-colors hover:bg-base-300"
+		>
 			<div class="stat-title">Total Functions</div>
 			<div class="stat-value">{summary.total}</div>
-		</div>
+		</a>
 
-		<div class="stat rounded-box bg-info">
+		<a
+			href="/search?startDate={defaultStartDate}&endDate={defaultEndDate}&status=running"
+			class="stat rounded-box bg-info transition-opacity hover:opacity-90"
+		>
 			<div class="stat-title">Running</div>
 			<div class="stat-value">{summary.running}</div>
-		</div>
+		</a>
 
-		<div class="stat rounded-box bg-success">
+		<a
+			href="/search?startDate={defaultStartDate}&endDate={defaultEndDate}&status=success"
+			class="stat rounded-box bg-success transition-opacity hover:opacity-90"
+		>
 			<div class="stat-title">Succeeded</div>
 			<div class="stat-value">{summary.succeeded}</div>
-		</div>
+		</a>
 
-		<div class="stat rounded-box bg-error">
+		<a
+			href="/search?startDate={defaultStartDate}&endDate={defaultEndDate}&status=failed"
+			class="stat rounded-box bg-error transition-opacity hover:opacity-90"
+		>
 			<div class="stat-title">Failed</div>
 			<div class="stat-value">{summary.failed}</div>
-		</div>
+		</a>
 	</div>
 
 	<div class="mt-8">

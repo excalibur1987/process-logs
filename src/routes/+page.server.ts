@@ -1,9 +1,13 @@
 import { db } from '$lib/db';
 import { functionHeaders, functionProgress } from '$lib/db/schema';
-import { desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, gte, isNull, lte } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
+	const today = new Date();
+	const sevenDaysAgo = new Date();
+	sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
 	// Get all functions for total counts
 	const allResults = await db
 		.select({
@@ -11,7 +15,13 @@ export const load: PageServerLoad = async () => {
 			finished: functionProgress.finished,
 			success: functionProgress.success
 		})
-		.from(functionProgress);
+		.from(functionProgress)
+		.where(
+			and(
+				gte(functionProgress.startDate, sevenDaysAgo.toISOString()),
+				lte(functionProgress.startDate, today.toISOString())
+			)
+		);
 
 	// Get only parent functions for display
 	const parentResults = await db
