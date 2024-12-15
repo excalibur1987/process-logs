@@ -70,6 +70,7 @@
 						<a
 							href="/functions/{func.parentId}"
 							class="card bg-base-100 transition-colors hover:bg-base-300"
+							data-sveltekit-reload
 						>
 							<div class="card-body p-4">
 								<div class="flex items-center gap-2">
@@ -130,6 +131,7 @@
 								<a
 									href="/functions/{child.funcId}"
 									class="card bg-base-100 transition-colors hover:bg-base-300"
+									data-sveltekit-reload
 								>
 									<div class="card-body p-4">
 										<div class="flex items-center justify-between">
@@ -162,11 +164,6 @@
 			<h2 class="text-2xl font-bold">Function Logs</h2>
 			<a href="/functions/{func.funcId}/logs" class="btn btn-outline"> View Full Logs </a>
 		</div>
-		<FunctionLogs
-			funcId={func.funcId}
-			initialLogs={logs}
-			showHeader={false}
-			isFinished={func.finished}
-		/>
+		<FunctionLogs {func} initialLogs={logs} showHeader={false} isFinished={func.finished} />
 	</div>
 </div>

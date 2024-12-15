@@ -28,12 +28,19 @@ export async function POST({ params, request }) {
 		const parsed = requestSchema.parse(JSON.parse(reqJson));
 		const { funcSlug, parentId, args, source } = parsed;
 
-		const [funcHeader] = await db
+		let [funcHeader] = await db
 			.select()
 			.from(functionHeaders)
 			.where(eq(sql<string>`slugify(${functionHeaders.funcName})`, params.funcName));
 		if (!funcHeader) {
-			return json({ error: 'Function not found' }, { status: 404 });
+			await db.insert(functionHeaders).values({
+				funcName: params.funcName,
+				funcSlug: sql<string>`slugify(${params.funcName})`
+			});
+			[funcHeader] = await db
+				.select()
+				.from(functionHeaders)
+				.where(eq(sql<string>`slugify(${functionHeaders.funcName})`, params.funcName));
 		}
 
 		let parentFunction: FunctionInstance | null = null;

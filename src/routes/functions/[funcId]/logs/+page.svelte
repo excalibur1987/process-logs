@@ -89,5 +89,5 @@
 		</div>
 	</div>
 
-	<FunctionLogs funcId={func.funcId} initialLogs={logs} isFinished={func.finished} />
+	<FunctionLogs {func} initialLogs={logs} isFinished={func.finished} />
 </div>

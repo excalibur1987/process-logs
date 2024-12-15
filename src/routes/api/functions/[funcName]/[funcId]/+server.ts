@@ -1,9 +1,9 @@
 import { db } from '$lib/db';
-import { functionLogs, functionProgress } from '$lib/db/schema';
+import { functionLogs, functionProgress, functionProgressTracking } from '$lib/db/schema';
 import type { FunctionInstance } from '$lib/db/utils';
 import { getFunctionInstanceById, getFunctionInstanceBySlug } from '$lib/db/utils';
 import { json } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 export async function GET({ params }) {
@@ -22,12 +22,20 @@ export async function GET({ params }) {
 		}
 
 		// Get function logs
-		const logs = await db
+		let logs = await db
 			.select()
 			.from(functionLogs)
 			.where(eq(functionLogs.funcId, func.funcId))
 			.orderBy(functionLogs.rowDate);
-
+		logs = await Promise.all(
+			logs.map(async (log) => {
+				if (log.type === 'PROGRESS') {
+					const lastProgress = await getLastProgress(func);
+					return { ...log, message: JSON.stringify(lastProgress) };
+				}
+				return log;
+			})
+		);
 		return json({
 			function: func,
 			logs
@@ -75,14 +83,16 @@ export async function PATCH({ params, request }) {
 
 // Endpoint to add logs to a function
 export async function POST({ params, request }) {
-	const funcId = parseInt(params.funcId);
+	let func: FunctionInstance;
 
-	if (isNaN(funcId)) {
-		return new Response('Invalid function ID', { status: 400 });
+	if (parseInt(params.funcId).toString().length !== params.funcId.length) {
+		func = await getFunctionInstanceBySlug(params.funcId);
+	} else {
+		func = await getFunctionInstanceById(parseInt(params.funcId));
 	}
 
 	try {
-		const data = JSON.parse(await request.text());
+		const data = await request.json();
 		let {
 			type,
 			message = '',
@@ -94,12 +104,21 @@ export async function POST({ params, request }) {
 			traceBack: string | null;
 			rowDate: Date;
 		};
+		if (type.toLowerCase() === 'progress') {
+			const progress = await progressLogger(func, message as {});
+			if (progress.success) {
+				message = progress.progId ?? '';
+			} else {
+				console.error('Error adding progress log:', progress.message);
+				return new Response('Internal server error', { status: 500 });
+			}
+		}
 		rowDate = new Date(rowDate);
 
 		const [log] = await db
 			.insert(functionLogs)
 			.values({
-				funcId,
+				funcId: func.funcId,
 				type,
 				message: message.toString(),
 				traceBack,
@@ -111,5 +130,61 @@ export async function POST({ params, request }) {
 	} catch (error) {
 		console.error('Error adding log:', error);
 		return new Response('Internal server error', { status: 500 });
+	}
+}
+
+async function getLastProgress(func: FunctionInstance) {
+	const lastProgress = await db
+		.select({
+			prog_id: functionProgressTracking.progId,
+			title: functionProgressTracking.title,
+			description: functionProgressTracking.description,
+			value: functionProgressTracking.currentValue,
+			max: functionProgressTracking.maxValue,
+			duration: functionProgressTracking.duration
+		})
+		.from(functionProgressTracking)
+		.where(eq(functionProgressTracking.funcId, func.funcId))
+		.orderBy(desc(functionProgressTracking.lastUpdated))
+		.limit(1);
+	return lastProgress[0];
+}
+
+async function progressLogger(func: FunctionInstance, message: object) {
+	const schema = z.object({
+		prog_id: z.string(),
+		title: z.string(),
+		description: z.string(),
+		value: z.number(),
+		max: z.number(),
+		duration: z.number().optional()
+	});
+	try {
+		const progressData = schema.parse(message);
+
+		// Update or insert progress tracking
+		await db.insert(functionProgressTracking).values({
+			funcId: func.funcId,
+			progId: progressData.prog_id,
+			title: progressData.title,
+			description: progressData.description,
+			currentValue: progressData.value,
+			maxValue: progressData.max,
+			duration: progressData.duration,
+			lastUpdated: new Date().toISOString(),
+			completed: progressData.value >= progressData.max
+		});
+
+		return {
+			success: true,
+			progId: progressData.prog_id
+		};
+	} catch (error) {
+		console.error('Error updating progress:', error);
+		return {
+			success: false,
+			progId: null,
+			message: 'Internal server error'
+		};
 	}
 }

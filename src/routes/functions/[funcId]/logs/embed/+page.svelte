@@ -42,7 +42,7 @@
 
 	{#if func}
 		<FunctionLogs
-			funcId={func.funcId}
+			{func}
 			initialLogs={logs}
 			showHeader={false}
 			isFinished={func.finished}
