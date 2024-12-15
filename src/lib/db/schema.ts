@@ -3,6 +3,7 @@ import {
 	foreignKey,
 	integer,
 	json,
+	numeric,
 	pgTable,
 	serial,
 	text,
@@ -68,3 +69,29 @@ export const functionHeaders = pgTable('function_headers', {
 	funcName: varchar('func_name', { length: 200 }).notNull(),
 	funcSlug: text('func_slug').notNull()
 });
+
+export const functionProgressTracking = pgTable(
+	'function_progress_tracking',
+	{
+		id: serial().primaryKey().notNull(),
+		funcId: integer('func_id').notNull(),
+		progId: varchar('prog_id', { length: 100 }).notNull(),
+		title: varchar('title', { length: 200 }).notNull(),
+		description: text().notNull(),
+		currentValue: numeric('current_value').notNull(),
+		maxValue: numeric('max_value').notNull(),
+		duration: numeric('duration'),
+		lastUpdated: timestamp('last_updated', {
+			withTimezone: true,
+			mode: 'string'
+		}).notNull(),
+		completed: boolean('completed').notNull().default(false)
+	},
+	(table) => [
+		foreignKey({
+			columns: [table.funcId],
+			foreignColumns: [functionProgress.funcId],
+			name: 'fk_function_progress_tracking_func_id_function_progress'
+		})
+	]
+);
