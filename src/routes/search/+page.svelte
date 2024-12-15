@@ -11,16 +11,44 @@
 	let loading = $state(false);
 	let selectedFunction = $state<FunctionHeader | undefined>(undefined);
 	let currentPage = $state(parseInt($page.url.searchParams.get('page') || '1'));
+	let startDate = $state($page.url.searchParams.get('startDate') || data.defaultDates.startDate);
+	let endDate = $state($page.url.searchParams.get('endDate') || data.defaultDates.endDate);
+	let status = $state($page.url.searchParams.get('status') || 'all');
 	const limit = 10;
 
+	// Initialize selectedFunction from URL if funcHeaderId exists
 	$effect(() => {
-		console.log('🚀 ~ file: +page.svelte:17 ~ $effect ~ selectedFunction:', selectedFunction);
+		const funcHeaderId = $page.url.searchParams.get('funcHeaderId');
+		const funcName = $page.url.searchParams.get('funcName');
+		const funcSlug = $page.url.searchParams.get('funcSlug');
+		if (funcHeaderId && funcName && funcSlug) {
+			selectedFunction = {
+				id: parseInt(funcHeaderId),
+				funcName,
+				funcSlug
+			};
+		}
 	});
 
+	// Update URL when search parameters change
 	$effect(() => {
 		if (!loading) {
-			const url = $page.url;
+			const url = new URL($page.url);
 			url.searchParams.set('page', currentPage.toString());
+			url.searchParams.set('startDate', startDate);
+			url.searchParams.set('endDate', endDate);
+			url.searchParams.set('status', status);
+
+			if (selectedFunction) {
+				url.searchParams.set('funcHeaderId', selectedFunction.id.toString());
+				url.searchParams.set('funcName', selectedFunction.funcName);
+				url.searchParams.set('funcSlug', selectedFunction.funcSlug);
+			} else {
+				url.searchParams.delete('funcHeaderId');
+				url.searchParams.delete('funcName');
+				url.searchParams.delete('funcSlug');
+			}
+
 			goto(url.toString(), { replaceState: true });
 		}
 	});
@@ -29,8 +57,21 @@
 		currentPage = newPage;
 	}
 
-	const pagination = form?.pagination || data.pagination;
-	const results = form?.results || data.results;
+	function handleDateChange(event: Event, field: 'startDate' | 'endDate') {
+		const value = (event.target as HTMLInputElement).value;
+		if (field === 'startDate') {
+			startDate = value;
+		} else {
+			endDate = value;
+		}
+	}
+
+	function handleStatusChange(event: Event) {
+		status = (event.target as HTMLSelectElement).value;
+	}
+
+	let pagination = $derived(form?.pagination || data.pagination);
+	let results = $derived(form?.results || data.results);
 </script>
 
 <div class="p-8">
@@ -43,7 +84,7 @@
 			loading = true;
 			return async ({ update }) => {
 				loading = false;
-				await update({ reset: false });
+				await update({ reset: true });
 			};
 		}}
 	>
@@ -65,11 +106,12 @@
 				<SearchSelect
 					name="funcName"
 					placeholder="Search for a function..."
-					bind:value={selectedFunction}
+					initialValue={selectedFunction}
 					valueKey="funcName"
 					endpoint="/api/functions/names"
 					pageSize={20}
 					optionView={renderOption}
+					changeSelected={(item) => (selectedFunction = item)}
 				/>
 			</div>
 
@@ -80,8 +122,9 @@
 				<input
 					type="date"
 					name="startDate"
-					value={data.defaultDates.startDate}
+					value={startDate}
 					class="input input-bordered"
+					onchange={(e) => handleDateChange(e, 'startDate')}
 				/>
 			</div>
 
@@ -92,8 +135,9 @@
 				<input
 					type="date"
 					name="endDate"
-					value={data.defaultDates.endDate}
+					value={endDate}
 					class="input input-bordered"
+					onchange={(e) => handleDateChange(e, 'endDate')}
 				/>
 			</div>
 
@@ -101,7 +145,13 @@
 				<label class="label" for="status">
 					<span class="label-text">Status</span>
 				</label>
-				<select id="status" name="status" class="select select-bordered">
+				<select
+					id="status"
+					name="status"
+					class="select select-bordered"
+					value={status}
+					onchange={handleStatusChange}
+				>
 					<option value="all">All</option>
 					<option value="running">Running</option>
 					<option value="success">Success</option>
@@ -110,11 +160,13 @@
 			</div>
 		</div>
 
-		<button type="submit" class="btn btn-primary mb-8" disabled={loading}>
-			{#if loading}
-				<span class="loading loading-spinner"></span>
-			{/if}
-			Search
+		<button
+			type="submit"
+			class="grid-template-columns-2 btn btn-primary mb-8 grid place-items-center"
+			disabled={loading}
+		>
+			<span class="loading loading-spinner" class:invisible={!loading}></span>
+			<span>Search</span>
 		</button>
 	</form>
 

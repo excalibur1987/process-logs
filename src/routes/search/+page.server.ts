@@ -5,30 +5,60 @@ import { and, between, desc, eq, sql } from 'drizzle-orm';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {
-	// Set default date range to last 7 days
-	const end = new Date();
-	const start = new Date();
-	start.setDate(start.getDate() - 7);
-
-	const defaultStartDate = format(start, 'yyyy-MM-dd');
-	const defaultEndDate = format(end, 'yyyy-MM-dd');
-
+	// Get search parameters from URL
+	const funcHeaderId = url.searchParams.get('funcHeaderId');
+	const startDate = url.searchParams.get('startDate');
+	const endDate = url.searchParams.get('endDate');
+	const status = url.searchParams.get('status') || 'all';
 	const page = parseInt(url.searchParams.get('page') || '1');
 	const limit = parseInt(url.searchParams.get('limit') || '10');
 	const offset = (page - 1) * limit;
+
+	// Set default date range to last 7 days if not provided
+	const defaultEnd = new Date();
+	const defaultStart = new Date();
+	defaultStart.setDate(defaultStart.getDate() - 7);
+
+	const defaultStartDate = format(defaultStart, 'yyyy-MM-dd');
+	const defaultEndDate = format(defaultEnd, 'yyyy-MM-dd');
+
+	const effectiveStartDate = startDate || defaultStartDate;
+	const effectiveEndDate = endDate || defaultEndDate;
+
+	// Build filters
+	const filters = [];
+
+	// Add date filter
+	filters.push(
+		between(
+			sql<Date>`${functionProgress.startDate}::date`,
+			new Date(effectiveStartDate).toISOString(),
+			new Date(effectiveEndDate).toISOString()
+		)
+	);
+
+	// Add function header filter if provided
+	if (funcHeaderId) {
+		filters.push(eq(functionProgress.funcHeaderId, parseInt(funcHeaderId)));
+	}
+
+	// Add status filter
+	if (status !== 'all') {
+		if (status === 'running') {
+			filters.push(eq(functionProgress.finished, false));
+		} else if (status === 'success') {
+			filters.push(and(eq(functionProgress.finished, true), eq(functionProgress.success, true)));
+		} else if (status === 'failed') {
+			filters.push(and(eq(functionProgress.finished, true), eq(functionProgress.success, false)));
+		}
+	}
 
 	// Get total count
 	const totalCount = await db
 		.select({ count: sql<number>`count(*)`.mapWith(Number) })
 		.from(functionProgress)
 		.innerJoin(functionHeaders, eq(functionProgress.funcHeaderId, functionHeaders.id))
-		.where(
-			between(
-				functionProgress.startDate,
-				new Date(defaultStartDate).toISOString(),
-				new Date(defaultEndDate).toISOString()
-			)
-		)
+		.where(and(...filters))
 		.then(([{ count }]) => Number(count));
 
 	// Get paginated results
@@ -49,13 +79,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		})
 		.from(functionProgress)
 		.innerJoin(functionHeaders, eq(functionProgress.funcHeaderId, functionHeaders.id))
-		.where(
-			between(
-				functionProgress.startDate,
-				new Date(defaultStartDate).toISOString(),
-				new Date(defaultEndDate).toISOString()
-			)
-		)
+		.where(and(...filters))
 		.orderBy(desc(functionProgress.startDate))
 		.limit(limit)
 		.offset(offset);
@@ -69,8 +93,8 @@ export const load: PageServerLoad = async ({ url }) => {
 			totalCount
 		},
 		defaultDates: {
-			startDate: defaultStartDate,
-			endDate: defaultEndDate
+			startDate: effectiveStartDate,
+			endDate: effectiveEndDate
 		}
 	};
 };
@@ -78,8 +102,7 @@ export const load: PageServerLoad = async ({ url }) => {
 export const actions = {
 	search: async ({ request, url }) => {
 		const formData = await request.formData();
-		const funcName = formData.get('funcName')?.toString() || '';
-		console.log('🚀 ~ file: +page.server.ts:82 ~ search: ~ funcName:', funcName);
+		const funcHeaderId = formData.get('funcHeaderId')?.toString();
 		const startDate = formData.get('startDate')?.toString();
 		const endDate = formData.get('endDate')?.toString();
 		const status = formData.get('status')?.toString() || 'all';
@@ -87,8 +110,9 @@ export const actions = {
 		const limit = parseInt(formData.get('limit')?.toString() || '10');
 		const offset = (page - 1) * limit;
 
-		const filters = [eq(functionProgress.funcHeaderId, Number(funcName))];
+		const filters = [];
 
+		// Add date filter if provided
 		if (startDate && endDate) {
 			filters.push(
 				between(
@@ -97,6 +121,22 @@ export const actions = {
 					new Date(endDate).toISOString()
 				)
 			);
+		}
+
+		// Add function header filter if provided
+		if (funcHeaderId) {
+			filters.push(eq(functionProgress.funcHeaderId, parseInt(funcHeaderId)));
+		}
+
+		// Add status filter
+		if (status !== 'all') {
+			if (status === 'running') {
+				filters.push(eq(functionProgress.finished, false));
+			} else if (status === 'success') {
+				filters.push(and(eq(functionProgress.finished, true), eq(functionProgress.success, true)));
+			} else if (status === 'failed') {
+				filters.push(and(eq(functionProgress.finished, true), eq(functionProgress.success, false)));
+			}
 		}
 
 		// Get total count
@@ -108,7 +148,7 @@ export const actions = {
 			.then(([{ count }]) => Number(count));
 
 		// Get paginated results
-		const resultsQuery = db
+		const results = await db
 			.select({
 				funcId: functionProgress.funcId,
 				parentId: functionProgress.parentId,
@@ -130,21 +170,8 @@ export const actions = {
 			.limit(limit)
 			.offset(offset);
 
-		const results = await resultsQuery.execute();
-
-		// Filter by status on the server side
-		const filteredResults =
-			status !== 'all'
-				? results.filter((func) => {
-						if (status === 'running') return !func.finished;
-						if (status === 'success') return func.finished && func.success;
-						if (status === 'failed') return func.finished && !func.success;
-						return true;
-					})
-				: results;
-
 		return {
-			results: filteredResults,
+			results,
 			pagination: {
 				page,
 				limit,
