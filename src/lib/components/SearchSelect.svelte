@@ -5,25 +5,28 @@
 	interface Props {
 		name: string;
 		placeholder?: string;
-		value?: T;
+		initialValue?: T;
 		valueKey: keyof T;
 		endpoint: string;
 		searchKey?: string;
 		optionView?: Snippet<[T]>;
 		pageSize?: number;
+		changeSelected?: (item: T) => void;
 	}
 
 	let {
 		name,
 		placeholder = 'Search...',
-		value = $bindable<T | undefined>(undefined),
+		initialValue = undefined,
 		valueKey,
 		endpoint,
 		searchKey = 'search',
 		optionView,
-		pageSize = 10
+		pageSize = 10,
+		changeSelected
 	}: Props = $props();
 
+	let value = $state<T | undefined>(initialValue);
 	let options = $state<T[]>([]);
 	let loading = $state(false);
 	let showDropdown = $state(false);
@@ -77,10 +80,7 @@
 
 	function selectOption(option: T) {
 		value = option;
-		showDropdown = false;
-	}
-
-	function handleClickOutside() {
+		changeSelected?.(option);
 		showDropdown = false;
 	}
 
@@ -99,6 +99,14 @@
 		} else {
 			// Load initial options without search term
 			searchFunctions('');
+		}
+	});
+
+	// Update value when initialValue changes
+	$effect(() => {
+		value = initialValue;
+		if (value) {
+			searchTerm = value[valueKey] as string;
 		}
 	});
 </script>
