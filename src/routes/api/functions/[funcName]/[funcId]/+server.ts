@@ -1,22 +1,21 @@
 import { db } from '$lib/db';
 import { functionLogs, functionProgress } from '$lib/db/schema';
+import type { FunctionInstance } from '$lib/db/utils';
+import { getFunctionInstanceById, getFunctionInstanceBySlug } from '$lib/db/utils';
 import { json } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 export async function GET({ params }) {
-	const funcId = parseInt(params.funcId);
-
-	if (isNaN(funcId)) {
-		return new Response('Invalid function ID', { status: 400 });
-	}
-
 	try {
 		// Get function details
-		const [func] = await db
-			.select()
-			.from(functionProgress)
-			.where(eq(functionProgress.funcId, funcId));
+		let func: FunctionInstance;
+
+		if (parseInt(params.funcId).toString().length !== params.funcId.length) {
+			func = await getFunctionInstanceBySlug(params.funcId);
+		} else {
+			func = await getFunctionInstanceById(parseInt(params.funcId));
+		}
 
 		if (!func) {
 			return new Response('Function not found', { status: 404 });
@@ -26,7 +25,7 @@ export async function GET({ params }) {
 		const logs = await db
 			.select()
 			.from(functionLogs)
-			.where(eq(functionLogs.funcId, funcId))
+			.where(eq(functionLogs.funcId, func.funcId))
 			.orderBy(functionLogs.rowDate);
 
 		return json({
