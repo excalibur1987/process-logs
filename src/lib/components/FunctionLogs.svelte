@@ -39,10 +39,13 @@
 
 	// Update progress state when new logs come in
 	$effect(() => {
-		logs.forEach((log) => {
+		logs.forEach(async (log) => {
 			if (log.type === 'PROGRESS') {
 				try {
-					const progressData = JSON.parse(log.message);
+					const response = await fetch(
+						`/api/functions/${funcId}/logs/progress?progressId=${log.message}`
+					);
+					const progressData = await response.json();
 					if (progressData.prog_id) {
 						if (!progressStatesByFunc[log.funcId]) {
 							progressStatesByFunc[log.funcId] = {};
@@ -117,18 +120,18 @@
 			}
 		};
 	});
-	function scrollToBottom() {
-		if (logsContainer) {
-			logsContainer.scrollTop = logsContainer.scrollHeight;
-		}
-	}
+	// function scrollToBottom() {
+	// 	if (logsContainer) {
+	// 		logsContainer.scrollTop = logsContainer.scrollHeight;
+	// 	}
+	// }
 
-	// Initial scroll to bottom
-	$effect(() => {
-		if (logs.length > 0 && !func?.finished) {
-			scrollToBottom();
-		}
-	});
+	// // Initial scroll to bottom
+	// $effect(() => {
+	// 	if (logs.length > 0 && !func?.finished) {
+	// 		scrollToBottom();
+	// 	}
+	// });
 </script>
 
 {#if logs.length === 0}
@@ -180,39 +183,54 @@
 			{#each Object.entries(progressStatesByFunc) as [funcId, progressStates]}
 				{#if Object.keys(progressStates).length > 0}
 					<div class="mb-6 space-y-4 rounded-lg bg-base-200 p-4">
-						<div class="mb-2">
-							<h3 class="font-semibold">
-								Progress Tracking - {logs?.find((l) => l.funcId === parseInt(funcId))?.function
-									?.funcName}
-							</h3>
-							{#if parseInt(funcId) !== func.funcId}
-								<div class="text-sm text-base-content/70">Child Function</div>
-							{/if}
-						</div>
-						{#each Object.values(progressStates) as progress}
-							<div class="space-y-2">
-								<div class="flex items-center justify-between">
-									<div>
-										<div class="font-medium">{progress.title}</div>
-										<div class="text-sm text-base-content/70">{progress.description}</div>
-									</div>
-									<div class="text-sm font-medium">
-										{Math.round((progress.value / progress.max) * 100)}%
-									</div>
-								</div>
-								<div class="w-full">
-									<progress
-										class="progress progress-primary w-full"
-										value={progress.value}
-										max={progress.max}
-									></progress>
-								</div>
-								{#if progress.duration}
-									<div class="text-xs text-base-content/60">
-										Estimated time remaining: {Math.ceil(progress.duration)} seconds
-									</div>
+						<div class="mb-2 flex items-center justify-between">
+							<div>
+								<h3 class="font-semibold">
+									Progress Tracking - {logs?.find((l) => l.funcId === parseInt(funcId))?.function
+										?.funcName}
+								</h3>
+								{#if parseInt(funcId) !== func.funcId}
+									<div class="text-sm text-base-content/70">Child Function</div>
 								{/if}
 							</div>
+							<a
+								href="/functions/{funcId}/logs/progress"
+								class="btn btn-ghost btn-sm"
+								data-sveltekit-reload
+							>
+								View All Progress
+							</a>
+						</div>
+						{#each Object.entries(progressStates) as [progId, progress]}
+							<a
+								href="/functions/{funcId}/logs/progress?progressId={progId}"
+								class="block rounded-lg transition-colors hover:bg-base-300"
+								data-sveltekit-reload
+							>
+								<div class="space-y-2 p-2">
+									<div class="flex items-center justify-between">
+										<div>
+											<div class="font-medium">{progress.title}</div>
+											<div class="text-sm text-base-content/70">{progress.description}</div>
+										</div>
+										<div class="text-sm font-medium">
+											{Math.round((progress.value / progress.max) * 100)}%
+										</div>
+									</div>
+									<div class="w-full">
+										<progress
+											class="progress progress-primary w-full"
+											value={progress.value}
+											max={progress.max}
+										></progress>
+									</div>
+									{#if progress.duration}
+										<div class="text-xs text-base-content/60">
+											Estimated time remaining: {Math.ceil(progress.duration)} seconds
+										</div>
+									{/if}
+								</div>
+							</a>
 						{/each}
 					</div>
 				{/if}
