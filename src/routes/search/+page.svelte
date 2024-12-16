@@ -162,11 +162,16 @@
 
 		<button
 			type="submit"
-			class="grid-template-columns-2 btn btn-primary mb-8 grid place-items-center"
+			class="btn btn-primary mb-8 grid place-items-center"
+			style="grid-template-areas: 'stack';"
 			disabled={loading}
 		>
-			<span class="loading loading-spinner" class:invisible={!loading}></span>
-			<span>Search</span>
+			<span
+				style="grid-area: stack;"
+				class="loading loading-spinner col-start-1"
+				class:invisible={!loading}
+			></span>
+			<span style="grid-area: stack;" class="col-start-1" class:invisible={loading}>Search</span>
 		</button>
 	</form>
 
