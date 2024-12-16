@@ -6,7 +6,7 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async () => {
 	const today = new Date();
 	const sevenDaysAgo = new Date();
-	sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+	sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 1);
 
 	// Get all functions for total counts
 	const allResults = await db

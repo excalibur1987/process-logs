@@ -13,7 +13,7 @@
 	// Get current date for search links
 	const today = new Date();
 	const sevenDaysAgo = new Date();
-	sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+	sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 1);
 
 	const defaultStartDate = sevenDaysAgo.toISOString().split('T')[0];
 	const defaultEndDate = today.toISOString().split('T')[0];
