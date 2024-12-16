@@ -46,7 +46,7 @@
 			initialLogs={logs}
 			showHeader={false}
 			isFinished={func.finished}
-			pollingInterval={1000}
+			pollingInterval={10000}
 		/>
 	{/if}
 </div>
