@@ -32,6 +32,7 @@
 		"@sveltejs/adapter-node": "^5.2.10",
 		"@types/lodash": "^4.14.202",
 		"@types/pg": "^8.10.9",
+		"change-case": "^5.4.4",
 		"date-fns": "^2.30.0",
 		"drizzle-kit": "^0.30.0",
 		"drizzle-orm": "^0.38.0",

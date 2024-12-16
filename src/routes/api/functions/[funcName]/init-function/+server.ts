@@ -1,9 +1,9 @@
-import { functionHeaders, functionProgress } from '$lib/db/schema';
-
 import { db } from '$lib/db';
+import { functionHeaders, functionProgress } from '$lib/db/schema';
 import type { FunctionInstance } from '$lib/db/utils.js';
 import { getFunctionInstanceById, getFunctionInstanceBySlug } from '$lib/db/utils.js';
 import { json } from '@sveltejs/kit';
+import * as changeCase from 'change-case';
 import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
@@ -31,16 +31,16 @@ export async function POST({ params, request }) {
 		let [funcHeader] = await db
 			.select()
 			.from(functionHeaders)
-			.where(eq(sql<string>`slugify(${functionHeaders.funcName})`, params.funcName));
+			.where(eq(functionHeaders.funcName, changeCase.sentenceCase(params.funcName)));
 		if (!funcHeader) {
 			await db.insert(functionHeaders).values({
-				funcName: params.funcName,
+				funcName: changeCase.sentenceCase(params.funcName),
 				funcSlug: sql<string>`slugify(${params.funcName})`
 			});
 			[funcHeader] = await db
 				.select()
 				.from(functionHeaders)
-				.where(eq(sql<string>`slugify(${functionHeaders.funcName})`, params.funcName));
+				.where(eq(functionHeaders.funcName, changeCase.sentenceCase(params.funcName)));
 		}
 
 		let parentFunction: FunctionInstance | null = null;
