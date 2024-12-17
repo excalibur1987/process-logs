@@ -14,6 +14,7 @@
 	let startDate = $state($page.url.searchParams.get('startDate') || data.defaultDates.startDate);
 	let endDate = $state($page.url.searchParams.get('endDate') || data.defaultDates.endDate);
 	let status = $state($page.url.searchParams.get('status') || 'all');
+	let parentOnly = $state($page.url.searchParams.get('parentOnly') === 'true');
 	const limit = 10;
 
 	// Initialize selectedFunction from URL if funcHeaderId exists
@@ -38,6 +39,7 @@
 			url.searchParams.set('startDate', startDate);
 			url.searchParams.set('endDate', endDate);
 			url.searchParams.set('status', status);
+			url.searchParams.set('parentOnly', parentOnly.toString());
 
 			if (selectedFunction) {
 				url.searchParams.set('funcHeaderId', selectedFunction.id.toString());
@@ -68,6 +70,10 @@
 
 	function handleStatusChange(event: Event) {
 		status = (event.target as HTMLSelectElement).value;
+	}
+
+	function handleParentOnlyChange(event: Event) {
+		parentOnly = (event.target as HTMLInputElement).checked;
 	}
 
 	let pagination = $derived(form?.pagination || data.pagination);
@@ -157,6 +163,19 @@
 					<option value="success">Success</option>
 					<option value="failed">Failed</option>
 				</select>
+			</div>
+
+			<div class="form-control">
+				<label class="label cursor-pointer">
+					<span class="label-text">Parent Functions Only</span>
+					<input
+						type="checkbox"
+						name="parentOnly"
+						class="checkbox"
+						checked={parentOnly}
+						onchange={handleParentOnlyChange}
+					/>
+				</label>
 			</div>
 		</div>
 

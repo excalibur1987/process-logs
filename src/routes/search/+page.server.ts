@@ -1,7 +1,7 @@
 import { db } from '$lib/db';
 import { functionHeaders, functionProgress } from '$lib/db/schema';
 import { format } from 'date-fns';
-import { and, between, desc, eq, sql } from 'drizzle-orm';
+import { and, between, desc, eq, isNull, sql } from 'drizzle-orm';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {
@@ -10,6 +10,7 @@ export const load: PageServerLoad = async ({ url }) => {
 	const startDate = url.searchParams.get('startDate');
 	const endDate = url.searchParams.get('endDate');
 	const status = url.searchParams.get('status') || 'all';
+	const parentOnly = url.searchParams.get('parentOnly') === 'true';
 	const page = parseInt(url.searchParams.get('page') || '1');
 	const limit = parseInt(url.searchParams.get('limit') || '10');
 	const offset = (page - 1) * limit;
@@ -51,6 +52,11 @@ export const load: PageServerLoad = async ({ url }) => {
 		} else if (status === 'failed') {
 			filters.push(and(eq(functionProgress.finished, true), eq(functionProgress.success, false)));
 		}
+	}
+
+	// Add parent-only filter if enabled
+	if (parentOnly) {
+		filters.push(isNull(functionProgress.parentId));
 	}
 
 	// Get total count
@@ -106,6 +112,7 @@ export const actions = {
 		const startDate = formData.get('startDate')?.toString();
 		const endDate = formData.get('endDate')?.toString();
 		const status = formData.get('status')?.toString() || 'all';
+		const parentOnly = formData.get('parentOnly') === 'true';
 		const page = parseInt(formData.get('page')?.toString() || '1');
 		const limit = parseInt(formData.get('limit')?.toString() || '10');
 		const offset = (page - 1) * limit;
@@ -137,6 +144,11 @@ export const actions = {
 			} else if (status === 'failed') {
 				filters.push(and(eq(functionProgress.finished, true), eq(functionProgress.success, false)));
 			}
+		}
+
+		// Add parent-only filter if enabled
+		if (parentOnly) {
+			filters.push(isNull(functionProgress.parentId));
 		}
 
 		// Get total count
