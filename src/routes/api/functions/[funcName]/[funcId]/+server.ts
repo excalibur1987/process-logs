@@ -2,6 +2,8 @@ import { db } from '$lib/db';
 import { functionLogs, functionProgress, functionProgressTracking } from '$lib/db/schema';
 import type { FunctionInstance } from '$lib/db/utils';
 import { getFunctionInstanceById, getFunctionInstanceBySlug } from '$lib/db/utils';
+import type { ProgressData } from '$lib/types';
+import { isProgressData } from '$lib/utils/progress';
 import { validateWithContext } from '$lib/utils/zod-error';
 import { json } from '@sveltejs/kit';
 import { and, desc, eq, gt } from 'drizzle-orm';
@@ -130,14 +132,32 @@ export async function POST({ params, request }) {
 			rowDate = new Date().toISOString()
 		} = JSON.parse(data) as {
 			type: string;
-			message: string;
+			message: string | ProgressData;
 			traceBack: string | null;
 			rowDate: Date;
 		};
-		if (type.toLowerCase() === 'progress' && typeof message === 'object') {
-			// progressLogger(func, message as {});
-			message = JSON.stringify(message);
+
+		// Handle progress data
+		if (type.toLowerCase() === 'progress') {
+			if (typeof message === 'object') {
+				if (!isProgressData(message)) {
+					throw new Error('Invalid progress data format');
+				}
+				message = JSON.stringify(message);
+			} else if (typeof message === 'string') {
+				try {
+					const parsed = JSON.parse(message);
+					if (!isProgressData(parsed)) {
+						throw new Error('Invalid progress data format');
+					}
+				} catch (e) {
+					throw new Error('Invalid progress data JSON');
+				}
+			} else {
+				throw new Error('Invalid progress message type');
+			}
 		}
+
 		rowDate = new Date(rowDate);
 
 		const [log] = await db

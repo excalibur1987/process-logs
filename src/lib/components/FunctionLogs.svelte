@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { FunctionLog } from '$lib/types';
+	import type { FunctionLog, ProgressData } from '$lib/types';
 	import type { FunctionInstance } from '$lib/db/utils';
+	import { isProgressData, calculateProgressStats } from '$lib/utils/progress';
 
 	interface Props {
 		func: FunctionInstance;
@@ -13,21 +14,7 @@
 
 	let { func, initialLogs, showHeader = false, pollingInterval }: Props = $props();
 
-	let logs = $state<
-		(FunctionLog & {
-			function?: { funcId: number; funcName: string; funcSlug: string; parentId: number | null };
-			progress?: {
-				prog_id: string;
-				title: string;
-				description: string;
-				value: number;
-				max: number;
-				duration?: number;
-				completed: boolean;
-				lastUpdated: string;
-			} | null;
-		})[]
-	>([]);
+	let logs = $state<FunctionLog[]>([]);
 	let loading = $state(!initialLogs);
 	let error = $state<string | null>(null);
 	let funcFinished = $state(func?.finished);
@@ -44,37 +31,50 @@
 		max: number;
 		duration?: number;
 		lastUpdated: Date;
+		completed: boolean;
+		percentage: number;
 	}
 
 	let progressStatesByFunc = $state<Record<number, Record<string, ProgressState>>>({});
 
+	function updateProgressState(log: FunctionLog) {
+		if (log.type !== 'PROGRESS') return;
+
+		try {
+			const data = typeof log.message === 'string' ? JSON.parse(log.message) : log.message;
+			if (!isProgressData(data)) {
+				console.error('Invalid progress data format:', data);
+				return;
+			}
+
+			const { percentage, completed } = calculateProgressStats(data.value, data.max);
+
+			progressStatesByFunc = {
+				...progressStatesByFunc,
+				[log.funcId]: {
+					...progressStatesByFunc[log.funcId],
+					[data.prog_id]: {
+						progId: data.prog_id,
+						title: data.title,
+						description: data.description,
+						value: data.value,
+						max: data.max,
+						duration: data.duration,
+						lastUpdated: new Date(data.lastUpdated),
+						completed,
+						percentage
+					}
+				}
+			};
+		} catch (e) {
+			console.log('🚀 ~ file: FunctionLogs.svelte:74 ~ logs.forEach ~ e:', log.message);
+			console.error('Failed to update progress state:', e);
+		}
+	}
+
 	// Update progress state when new logs come in
 	$effect(() => {
-		logs.forEach((log) => {
-			if (log.type === 'PROGRESS' && log.progress) {
-				try {
-					const progressData = JSON.parse(log.message);
-					console.log(
-						'🚀 ~ file: FunctionLogs.svelte:74 ~ logs.forEach ~ progressData:',
-						progressData
-					);
-					if (!progressStatesByFunc[log.funcId]) {
-						progressStatesByFunc[log.funcId] = {};
-					}
-					progressStatesByFunc[log.funcId][progressData.prog_id] = {
-						progId: progressData.prog_id,
-						title: progressData.title,
-						description: progressData.description,
-						value: progressData.value,
-						max: progressData.max,
-						duration: progressData.duration,
-						lastUpdated: new Date(progressData.lastUpdated)
-					};
-				} catch (e) {
-					console.error('Failed to parse progress data:', e);
-				}
-			}
-		});
+		logs.forEach(updateProgressState);
 	});
 
 	let logsContainer = $state<HTMLDivElement | null>(null);
@@ -170,6 +170,7 @@
 					</span>
 				{/if}
 				<button class="btn btn-ghost btn-sm" onclick={fetchLogs}>
+					<span class="sr-only">Refresh</span>
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
 						class="h-5 w-5"
@@ -182,7 +183,6 @@
 							clip-rule="evenodd"
 						/>
 					</svg>
-					<span class="ml-2">Refresh</span>
 				</button>
 			</div>
 		</div>
@@ -220,12 +220,14 @@
 										<div class="text-sm text-base-content/70">{progress.description}</div>
 									</div>
 									<div class="text-sm font-medium">
-										{Math.round((progress.value / progress.max) * 100)}%
+										{Math.round(progress.percentage)}%
 									</div>
 								</div>
 								<div class="w-full">
 									<progress
-										class="progress progress-primary w-full"
+										class="progress w-full"
+										class:progress-primary={!progress.completed}
+										class:progress-success={progress.completed}
 										value={progress.value}
 										max={progress.max}
 									></progress>
