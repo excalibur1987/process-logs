@@ -16,6 +16,16 @@
 	let logs = $state<
 		(FunctionLog & {
 			function?: { funcId: number; funcName: string; funcSlug: string; parentId: number | null };
+			progress?: {
+				prog_id: string;
+				title: string;
+				description: string;
+				value: number;
+				max: number;
+				duration?: number;
+				completed: boolean;
+				lastUpdated: string;
+			} | null;
 		})[]
 	>([]);
 	let loading = $state(!initialLogs);
@@ -40,27 +50,26 @@
 
 	// Update progress state when new logs come in
 	$effect(() => {
-		logs.forEach(async (log) => {
-			if (log.type === 'PROGRESS') {
+		logs.forEach((log) => {
+			if (log.type === 'PROGRESS' && log.progress) {
 				try {
-					const response = await fetch(
-						`/api/functions/${funcId}/logs/progress?progressId=${log.message}`
+					const progressData = log.progress;
+					console.log(
+						'🚀 ~ file: FunctionLogs.svelte:74 ~ logs.forEach ~ progressData:',
+						progressData
 					);
-					const progressData = await response.json();
-					if (progressData.prog_id) {
-						if (!progressStatesByFunc[log.funcId]) {
-							progressStatesByFunc[log.funcId] = {};
-						}
-						progressStatesByFunc[log.funcId][progressData.prog_id] = {
-							progId: progressData.prog_id,
-							title: progressData.title,
-							description: progressData.description,
-							value: progressData.value,
-							max: progressData.max,
-							duration: progressData.duration,
-							lastUpdated: new Date(log.rowDate)
-						};
+					if (!progressStatesByFunc[log.funcId]) {
+						progressStatesByFunc[log.funcId] = {};
 					}
+					progressStatesByFunc[log.funcId][progressData.prog_id] = {
+						progId: progressData.prog_id,
+						title: progressData.title,
+						description: progressData.description,
+						value: progressData.value,
+						max: progressData.max,
+						duration: progressData.duration,
+						lastUpdated: new Date(progressData.lastUpdated)
+					};
 				} catch (e) {
 					console.error('Failed to parse progress data:', e);
 				}
@@ -75,7 +84,7 @@
 	if (initialLogs) {
 		initialLogs.then((loadedLogs) => {
 			logs = loadedLogs;
-			if (logs?.length > 0) {
+			if (logs.length > 0) {
 				lastLogDate = logs[logs.length - 1].rowDate;
 			}
 		});
