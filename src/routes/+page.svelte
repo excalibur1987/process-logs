@@ -30,7 +30,7 @@
 
 	<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
 		<a
-			href="/search?startDate={defaultStartDate}&endDate={defaultEndDate}"
+			href="/search?startDate={defaultStartDate}&endDate={defaultEndDate}&parentOnly=true"
 			class="stat rounded-box bg-base-200 transition-colors hover:bg-base-300"
 		>
 			<div class="stat-title">Total Functions</div>
@@ -38,7 +38,7 @@
 		</a>
 
 		<a
-			href="/search?startDate={defaultStartDate}&endDate={defaultEndDate}&status=running"
+			href="/search?startDate={defaultStartDate}&endDate={defaultEndDate}&parentOnly=true&status=running"
 			class="stat rounded-box bg-info transition-opacity hover:opacity-90"
 		>
 			<div class="stat-title">Running</div>
@@ -46,7 +46,7 @@
 		</a>
 
 		<a
-			href="/search?startDate={defaultStartDate}&endDate={defaultEndDate}&status=success"
+			href="/search?startDate={defaultStartDate}&endDate={defaultEndDate}&parentOnly=true&status=success"
 			class="stat rounded-box bg-success transition-opacity hover:opacity-90"
 		>
 			<div class="stat-title">Succeeded</div>
@@ -54,7 +54,7 @@
 		</a>
 
 		<a
-			href="/search?startDate={defaultStartDate}&endDate={defaultEndDate}&status=failed"
+			href="/search?startDate={defaultStartDate}&endDate={defaultEndDate}&parentOnly=true&status=failed"
 			class="stat rounded-box bg-error transition-opacity hover:opacity-90"
 		>
 			<div class="stat-title">Failed</div>
