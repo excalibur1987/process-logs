@@ -104,14 +104,9 @@ export async function POST({ params, request }) {
 			traceBack: string | null;
 			rowDate: Date;
 		};
-		if (type.toLowerCase() === 'progress') {
-			const progress = await progressLogger(func, message as {});
-			if (progress.success) {
-				message = progress.progId ?? '';
-			} else {
-				console.error('Error adding progress log:', progress.message);
-				return new Response('Internal server error', { status: 500 });
-			}
+		if (type.toLowerCase() === 'progress' && typeof message === 'object') {
+			progressLogger(func, message as {});
+			message = message?.['progId'] ?? '';
 		}
 		rowDate = new Date(rowDate);
 
