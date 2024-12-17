@@ -4,10 +4,10 @@ import type { FunctionInstance } from '$lib/db/utils';
 import { getFunctionInstanceById, getFunctionInstanceBySlug } from '$lib/db/utils';
 import { validateWithContext } from '$lib/utils/zod-error';
 import { json } from '@sveltejs/kit';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, gt } from 'drizzle-orm';
 import { z } from 'zod';
 
-export async function GET({ params }) {
+export async function GET({ params, url }) {
 	try {
 		// Get function details
 		let func: FunctionInstance;
@@ -22,12 +22,30 @@ export async function GET({ params }) {
 			return new Response('Function not found', { status: 404 });
 		}
 
+		// Parse the lastLogDate query parameter
+		const requestSchema = z.object({
+			lastLogDate: z.string().datetime().optional()
+		});
+
+		const { lastLogDate } = validateWithContext(
+			requestSchema,
+			Object.fromEntries(url.searchParams.entries()),
+			'GET /api/functions/[funcName]/[funcId]'
+		);
+
+		// Build the query conditions
+		const conditions = [eq(functionLogs.funcId, func.funcId)];
+		if (lastLogDate) {
+			conditions.push(gt(functionLogs.rowDate, lastLogDate));
+		}
+
 		// Get function logs
 		let logs = await db
 			.select()
 			.from(functionLogs)
-			.where(eq(functionLogs.funcId, func.funcId))
+			.where(and(...conditions))
 			.orderBy(functionLogs.rowDate);
+
 		logs = await Promise.all(
 			logs.map(async (log) => {
 				if (log.type === 'PROGRESS') {
@@ -37,6 +55,7 @@ export async function GET({ params }) {
 				return log;
 			})
 		);
+
 		return json({
 			function: func,
 			logs
@@ -193,13 +212,13 @@ async function progressLogger(func: FunctionInstance, message: object) {
 			await db.insert(functionProgressTracking).values({
 				funcId: func.funcId,
 				progId: progressData.prog_id,
-				title: progressData.title,
-				description: progressData.description,
-				currentValue: progressData.value.toFixed(2),
-				maxValue: progressData.max.toFixed(2),
-				duration: progressData.duration?.toFixed(2),
+				title: progressData?.title ?? '',
+				description: progressData?.description ?? '',
+				currentValue: progressData?.value?.toFixed(2) ?? '0',
+				maxValue: progressData?.max?.toFixed(2) ?? '0',
+				duration: progressData?.duration?.toFixed(2) ?? '0',
 				lastUpdated: new Date().toISOString(),
-				completed: progressData.value >= progressData.max
+				completed: progressData?.value >= progressData?.max
 			});
 		}
 

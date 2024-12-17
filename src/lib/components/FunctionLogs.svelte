@@ -23,6 +23,7 @@
 	let funcFinished = $state(func?.finished);
 	let funcId = $state(func?.funcId);
 	let funcSlug = $state(func?.headerSlug);
+	let lastLogDate = $state<string | null>(null);
 
 	// Track progress states by function ID
 	interface ProgressState {
@@ -68,14 +69,16 @@
 	});
 
 	let shouldAutoScroll = $state(false);
-
 	let logsContainer = $state<HTMLDivElement | null>(null);
-
 	let intervalId = $state<NodeJS.Timeout | undefined>(undefined);
 
+	// Initialize logs and set initial lastLogDate
 	if (initialLogs) {
 		initialLogs.then((loadedLogs) => {
 			logs = loadedLogs;
+			if (logs.length > 0) {
+				lastLogDate = logs[logs.length - 1].rowDate;
+			}
 		});
 	}
 
@@ -93,45 +96,47 @@
 		loading = true;
 		error = null;
 		try {
-			const response = await fetch(`/api/functions/${funcId}/logs`);
+			// Only fetch new logs after the last known log date
+			const url = new URL(`/api/functions/${funcId}/logs`, window.location.origin);
+			if (lastLogDate) {
+				url.searchParams.set('lastLogDate', lastLogDate);
+			}
+			const response = await fetch(url);
 			if (!response.ok) throw new Error('Failed to fetch logs');
-			logs = await response.json();
+			const { logs: newLogs } = await response.json();
+
+			// Update lastLogDate if we received new logs
+			if (newLogs.length > 0) {
+				lastLogDate = newLogs[newLogs.length - 1].rowDate;
+				// Append new logs to existing logs
+				logs = [...logs, ...newLogs];
+			}
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to fetch logs';
 		} finally {
 			loading = false;
-			shouldAutoScroll = true;
-		}
-		if (intervalId) {
-			clearInterval(intervalId);
-		}
-
-		// If the function is not finished, start polling
-		if (!func?.finished) {
-			intervalId = setInterval(fetchLogs, pollingInterval);
 		}
 	}
 
-	onMount(function () {
-		fetchLogs();
-		return async () => {
-			if (intervalId && func?.finished) {
+	// Auto-scroll effect
+	$effect(() => {
+		if (shouldAutoScroll && logsContainer) {
+			logsContainer.scrollTop = logsContainer.scrollHeight;
+		}
+	});
+
+	// Setup polling interval
+	onMount(() => {
+		if (pollingInterval && !funcFinished) {
+			intervalId = setInterval(fetchLogs, pollingInterval);
+		}
+
+		return () => {
+			if (intervalId) {
 				clearInterval(intervalId);
 			}
 		};
 	});
-	// function scrollToBottom() {
-	// 	if (logsContainer) {
-	// 		logsContainer.scrollTop = logsContainer.scrollHeight;
-	// 	}
-	// }
-
-	// // Initial scroll to bottom
-	// $effect(() => {
-	// 	if (logs.length > 0 && !func?.finished) {
-	// 		scrollToBottom();
-	// 	}
-	// });
 </script>
 
 {#if logs.length === 0}
