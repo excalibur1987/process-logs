@@ -1,5 +1,6 @@
 import { db } from '$lib/db';
 import { functionHeaders, functionProgress } from '$lib/db/schema';
+import { validateWithContext } from '$lib/utils/zod-error';
 import { json } from '@sveltejs/kit';
 import { and, eq, gte, sql } from 'drizzle-orm';
 import { z } from 'zod';
@@ -20,9 +21,12 @@ export async function GET({ params, request }) {
 	});
 
 	try {
-		const { period, interval, funcSlug, args } = requestSchema.parse(
-			Object.fromEntries(new URL(request.url).searchParams.entries())
+		const { period, interval, funcSlug, args } = validateWithContext(
+			requestSchema,
+			Object.fromEntries(new URL(request.url).searchParams.entries()),
+			'GET /api/functions/[funcName]/get-runs-summary'
 		);
+
 		const [funcHeader] = await db
 			.select()
 			.from(functionHeaders)
@@ -66,6 +70,10 @@ export async function GET({ params, request }) {
 
 		return json({ runs });
 	} catch (error) {
-		return json({ error: (error as Error).message }, { status: 400 });
+		console.error('Error getting runs summary:', error);
+		return json(
+			{ error: error instanceof Error ? error.message : 'An unknown error occurred' },
+			{ status: 400 }
+		);
 	}
 }

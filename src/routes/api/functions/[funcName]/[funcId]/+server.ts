@@ -2,6 +2,7 @@ import { db } from '$lib/db';
 import { functionLogs, functionProgress, functionProgressTracking } from '$lib/db/schema';
 import type { FunctionInstance } from '$lib/db/utils';
 import { getFunctionInstanceById, getFunctionInstanceBySlug } from '$lib/db/utils';
+import { validateWithContext } from '$lib/utils/zod-error';
 import { json } from '@sveltejs/kit';
 import { and, desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
@@ -42,7 +43,10 @@ export async function GET({ params }) {
 		});
 	} catch (error) {
 		console.error('Error fetching function details:', error);
-		return new Response('Internal server error', { status: 500 });
+		return json(
+			{ error: error instanceof Error ? error.message : 'An unknown error occurred' },
+			{ status: 500 }
+		);
 	}
 }
 
@@ -62,7 +66,11 @@ export async function PATCH({ params, request }) {
 
 	try {
 		const data = await request.json();
-		const { finished, success, endDate } = requestSchema.parse(JSON.parse(data));
+		const { finished, success, endDate } = validateWithContext(
+			requestSchema,
+			data,
+			'PATCH /api/functions/[funcName]/[funcId]'
+		);
 
 		const [updatedFunc] = await db
 			.update(functionProgress)
@@ -77,7 +85,10 @@ export async function PATCH({ params, request }) {
 		return json(updatedFunc);
 	} catch (error) {
 		console.error('Error updating function:', error);
-		return new Response('Internal server error', { status: 500 });
+		return json(
+			{ error: error instanceof Error ? error.message : 'An unknown error occurred' },
+			{ status: 400 }
+		);
 	}
 }
 
@@ -124,7 +135,10 @@ export async function POST({ params, request }) {
 		return json(log);
 	} catch (error) {
 		console.error('Error adding log:', error);
-		return new Response('Internal server error', { status: 500 });
+		return json(
+			{ error: error instanceof Error ? error.message : 'An unknown error occurred' },
+			{ status: 400 }
+		);
 	}
 }
 
@@ -155,7 +169,7 @@ async function progressLogger(func: FunctionInstance, message: object) {
 		duration: z.number().optional()
 	});
 	try {
-		const progressData = schema.parse(message);
+		const progressData = validateWithContext(schema, message, 'progressLogger');
 
 		let [progress] = await db
 			.select()
@@ -198,7 +212,7 @@ async function progressLogger(func: FunctionInstance, message: object) {
 		return {
 			success: false,
 			progId: null,
-			message: 'Internal server error'
+			error: error instanceof Error ? error.message : 'An unknown error occurred'
 		};
 	}
 }

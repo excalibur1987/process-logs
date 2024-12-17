@@ -1,68 +1,78 @@
 import { db } from '$lib/db';
 import { functionHeaders, functionLogs, functionProgress } from '$lib/db/schema';
+import { validateWithContext } from '$lib/utils/zod-error';
 import { json } from '@sveltejs/kit';
 import { and, between, desc, eq, ilike, isNull, or, sql } from 'drizzle-orm';
-
 import { z } from 'zod';
 
 export async function POST({ request }) {
-	const data = await request.json();
+	try {
+		const data = await request.json();
 
-	const schema = z.object({
-		funcName: z.string(),
-		parentId: z.number(),
-		slug: z.string(),
-		args: z.any(),
-		source: z.string(),
-		logs: z.array(
-			z.object({
-				type: z.string(),
-				message: z.string(),
-				traceBack: z.string()
-			})
-		)
-	});
+		const schema = z.object({
+			funcName: z.string(),
+			parentId: z.number(),
+			slug: z.string(),
+			args: z.any(),
+			source: z.string(),
+			logs: z.array(
+				z.object({
+					type: z.string(),
+					message: z.string(),
+					traceBack: z.string()
+				})
+			)
+		});
 
-	const parsedData = schema.safeParse(data);
-	if (!parsedData.success) {
-		throw new Error('Invalid data format');
-	}
-
-	const { funcName, parentId, slug, args, source, logs = [] } = parsedData.data;
-
-	const funcHeaderId = await db
-		.select({ id: functionHeaders.id })
-		.from(functionHeaders)
-		.where(eq(functionHeaders.funcSlug, funcName))
-		.then(([result]) => result?.id);
-
-	const [progress] = await db
-		.insert(functionProgress)
-		.values({
-			funcHeaderId,
+		const {
+			funcName,
 			parentId,
 			slug,
-			args: JSON.stringify(args),
+			args,
 			source,
-			startDate: new Date().toISOString(),
-			finished: false,
-			success: false
-		})
-		.returning();
+			logs = []
+		} = validateWithContext(schema, data, 'POST /api/functions');
 
-	if (logs.length > 0) {
-		await db.insert(functionLogs).values(
-			logs.map((log) => ({
-				funcId: progress.funcId,
-				rowDate: new Date().toISOString(),
-				type: log.type,
-				message: log.message,
-				traceBack: log.traceBack
-			}))
+		const funcHeaderId = await db
+			.select({ id: functionHeaders.id })
+			.from(functionHeaders)
+			.where(eq(functionHeaders.funcSlug, funcName))
+			.then(([result]) => result?.id);
+
+		const [progress] = await db
+			.insert(functionProgress)
+			.values({
+				funcHeaderId,
+				parentId,
+				slug,
+				args: JSON.stringify(args),
+				source,
+				startDate: new Date().toISOString(),
+				finished: false,
+				success: false
+			})
+			.returning();
+
+		if (logs.length > 0) {
+			await db.insert(functionLogs).values(
+				logs.map((log) => ({
+					funcId: progress.funcId,
+					rowDate: new Date().toISOString(),
+					type: log.type,
+					message: log.message,
+					traceBack: log.traceBack
+				}))
+			);
+		}
+
+		return json({ funcId: progress.funcId });
+	} catch (error) {
+		console.error('Error in POST /api/functions:', error);
+		return json(
+			{ error: error instanceof Error ? error.message : 'An unknown error occurred' },
+			{ status: 400 }
 		);
 	}
-
-	return json({ funcId: progress.funcId });
 }
 
 export async function GET({ url }) {

@@ -2,6 +2,7 @@ import { db } from '$lib/db';
 import { functionHeaders, functionProgress } from '$lib/db/schema';
 import type { FunctionInstance } from '$lib/db/utils.js';
 import { getFunctionInstanceById, getFunctionInstanceBySlug } from '$lib/db/utils.js';
+import { validateWithContext } from '$lib/utils/zod-error';
 import { json } from '@sveltejs/kit';
 import * as changeCase from 'change-case';
 import { eq, sql } from 'drizzle-orm';
@@ -24,9 +25,11 @@ const requestSchema = z.object({
 export async function POST({ params, request }) {
 	try {
 		const reqJson = await request.json();
-
-		const parsed = requestSchema.parse(JSON.parse(reqJson));
-		const { funcSlug, parentId, args, source } = parsed;
+		const { funcSlug, parentId, args, source } = validateWithContext(
+			requestSchema,
+			reqJson,
+			'POST /api/functions/[funcName]/init-function'
+		);
 
 		let [funcHeader] = await db
 			.select()
@@ -68,6 +71,10 @@ export async function POST({ params, request }) {
 
 		return json({ funcId });
 	} catch (error) {
-		return json({ error: (error as Error).message }, { status: 400 });
+		console.error('Error initializing function:', error);
+		return json(
+			{ error: error instanceof Error ? error.message : 'An unknown error occurred' },
+			{ status: 400 }
+		);
 	}
 }

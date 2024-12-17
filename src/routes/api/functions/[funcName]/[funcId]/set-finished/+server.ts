@@ -2,6 +2,7 @@ import { db } from '$lib/db';
 import { functionProgress } from '$lib/db/schema';
 import type { FunctionInstance } from '$lib/db/utils';
 import { getFunctionInstanceById, getFunctionInstanceBySlug } from '$lib/db/utils';
+import { validateWithContext } from '$lib/utils/zod-error';
 import { json } from '@sveltejs/kit';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
@@ -22,7 +23,11 @@ export async function POST({ request, params }) {
 		});
 
 		const body = await request.json();
-		const { success } = schema.parse(JSON.parse(body));
+		const { success } = validateWithContext(
+			schema,
+			body,
+			'POST /api/functions/[funcName]/[funcId]/set-finished'
+		);
 
 		// Get all child functions if any
 		const childFunctions = await db
@@ -74,9 +79,9 @@ export async function POST({ request, params }) {
 		});
 	} catch (error) {
 		console.error('Error setting function finished status:', error);
-		return new Response(
-			error instanceof z.ZodError ? 'Invalid request body' : 'Internal server error',
-			{ status: error instanceof z.ZodError ? 400 : 500 }
+		return json(
+			{ error: error instanceof Error ? error.message : 'An unknown error occurred' },
+			{ status: 400 }
 		);
 	}
 }
