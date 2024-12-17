@@ -260,35 +260,47 @@
 					</button>
 				{/each}
 			{:else}
+				<!-- Always show first page -->
+				<button
+					class="btn btn-sm"
+					class:btn-primary={currentPage === 1}
+					onclick={() => handlePageChange(1)}
+				>
+					1
+				</button>
+
+				<!-- Left ellipsis -->
 				{#if currentPage > 3}
-					<button class="btn btn-sm" onclick={() => handlePageChange(1)}>1</button>
-					{#if currentPage > 4}
-						<span class="btn btn-disabled btn-sm">...</span>
-					{/if}
+					<span class="btn btn-disabled btn-sm">...</span>
 				{/if}
 
-				{#each Array(3) as _, i}
-					{@const page = Math.max(
-						Math.min(currentPage + (i - 1), pagination.totalPages - 2),
-						Math.min(3, pagination.totalPages - 2)
-					)}
-					<button
-						class="btn btn-sm"
-						class:btn-primary={currentPage === page}
-						onclick={() => handlePageChange(page)}
-					>
-						{page}
-					</button>
+				<!-- Pages around current page -->
+				{#each [-1, 0, 1] as offset}
+					{@const pageNum = currentPage + offset}
+					{#if pageNum > 1 && pageNum < pagination.totalPages}
+						<button
+							class="btn btn-sm"
+							class:btn-primary={currentPage === pageNum}
+							onclick={() => handlePageChange(pageNum)}
+						>
+							{pageNum}
+						</button>
+					{/if}
 				{/each}
 
+				<!-- Right ellipsis -->
 				{#if currentPage < pagination.totalPages - 2}
-					{#if currentPage < pagination.totalPages - 3}
-						<span class="btn btn-disabled btn-sm">...</span>
-					{/if}
-					<button class="btn btn-sm" onclick={() => handlePageChange(pagination.totalPages)}>
-						{pagination.totalPages}
-					</button>
+					<span class="btn btn-disabled btn-sm">...</span>
 				{/if}
+
+				<!-- Always show last page -->
+				<button
+					class="btn btn-sm"
+					class:btn-primary={currentPage === pagination.totalPages}
+					onclick={() => handlePageChange(pagination.totalPages)}
+				>
+					{pagination.totalPages}
+				</button>
 			{/if}
 
 			<button
@@ -301,10 +313,14 @@
 		</div>
 
 		<div class="mt-2 text-center text-sm text-base-content/60">
-			Showing {(currentPage - 1) * limit + 1} to {Math.min(
-				currentPage * limit,
-				pagination.totalCount
-			)} of {pagination.totalCount} results
+			{#if pagination.totalCount > 0}
+				Showing {(currentPage - 1) * pagination.limit + 1} to {Math.min(
+					currentPage * pagination.limit,
+					pagination.totalCount
+				)} of {pagination.totalCount} results
+			{:else}
+				No results found
+			{/if}
 		</div>
 	{/if}
 </div>
