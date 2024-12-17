@@ -79,7 +79,7 @@ export const functionProgressTracking = pgTable(
 		title: varchar('title', { length: 200 }).notNull(),
 		description: text().notNull(),
 		currentValue: numeric('current_value').notNull(),
-		maxValue: numeric('max_value').notNull(),
+		maxValue: numeric('max_value'),
 		duration: numeric('duration'),
 		lastUpdated: timestamp('last_updated', {
 			withTimezone: true,

@@ -184,7 +184,7 @@ async function progressLogger(func: FunctionInstance, message: object) {
 		title: z.string(),
 		description: z.string(),
 		value: z.number(),
-		max: z.number(),
+		max: z.number().nullable(),
 		duration: z.number().optional()
 	});
 	try {
@@ -204,22 +204,31 @@ async function progressLogger(func: FunctionInstance, message: object) {
 			await db
 				.update(functionProgressTracking)
 				.set({
-					currentValue: progressData.value.toFixed(2),
+					currentValue: progressData?.value?.toFixed(2) ?? '0',
 					lastUpdated: new Date().toISOString()
 				})
 				.where(eq(functionProgressTracking.id, progress.id));
 		} else {
-			await db.insert(functionProgressTracking).values({
-				funcId: func.funcId,
-				progId: progressData.prog_id,
-				title: progressData?.title ?? '',
-				description: progressData?.description ?? '',
-				currentValue: progressData?.value?.toFixed(2) ?? '0',
-				maxValue: progressData?.max?.toFixed(2) ?? '0',
-				duration: progressData?.duration?.toFixed(2) ?? '0',
-				lastUpdated: new Date().toISOString(),
-				completed: progressData?.value >= progressData?.max
-			});
+			await db
+				.insert(functionProgressTracking)
+				.values({
+					funcId: func.funcId,
+					progId: progressData.prog_id,
+					title: progressData?.title ?? '',
+					description: progressData?.description ?? '',
+					currentValue: progressData?.value?.toFixed(2) ?? '0',
+					maxValue: progressData?.max?.toFixed(2),
+					duration: progressData?.duration?.toFixed(2) ?? '0',
+					lastUpdated: new Date().toISOString(),
+					completed: progressData?.max ? progressData?.value >= progressData?.max : false
+				})
+				.onConflictDoUpdate({
+					target: [functionProgressTracking.funcId, functionProgressTracking.progId],
+					set: {
+						currentValue: progressData?.value?.toFixed(2) ?? '0',
+						lastUpdated: new Date().toISOString()
+					}
+				});
 		}
 
 		return {
