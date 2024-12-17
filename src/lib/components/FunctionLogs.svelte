@@ -204,31 +204,16 @@
 		{#each Object.entries(progressStatesByFunc) as [funcId, progressStates]}
 			{#if Object.keys(progressStates)?.length > 0}
 				<div class="mb-6 space-y-4 rounded-lg bg-base-200 p-4">
-					<div class="mb-2 flex items-center justify-between">
-						<div>
-							<h3 class="font-semibold">
-								Progress Tracking - {logs?.find((l) => l.funcId === parseInt(funcId))?.function
-									?.funcName}
-							</h3>
-							{#if parseInt(funcId) !== func.funcId}
-								<div class="text-sm text-base-content/70">Child Function</div>
-							{/if}
+					{#if parseInt(funcId) !== func.funcId}
+						<div class="mb-2">
+							<span class="badge badge-ghost gap-1">
+								{logs?.find((l) => l.funcId === parseInt(funcId))?.function?.funcName}
+							</span>
 						</div>
-						<a
-							href="/functions/{funcId}/logs/progress"
-							class="btn btn-ghost btn-sm"
-							data-sveltekit-reload
-						>
-							View All Progress
-						</a>
-					</div>
+					{/if}
 					{#each Object.entries(progressStates) as [progId, progress]}
-						<a
-							href="/functions/{funcId}/logs/progress?progressId={progId}"
-							class="block rounded-lg transition-colors hover:bg-base-300"
-							data-sveltekit-reload
-						>
-							<div class="space-y-2 p-2">
+						<div class="card bg-base-100 p-4">
+							<div class="space-y-2">
 								<div class="flex items-center justify-between">
 									<div>
 										<div class="font-medium">{progress.title}</div>
@@ -251,7 +236,7 @@
 									</div>
 								{/if}
 							</div>
-						</a>
+						</div>
 					{/each}
 				</div>
 			{/if}
