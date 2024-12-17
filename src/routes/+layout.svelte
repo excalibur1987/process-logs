@@ -52,7 +52,7 @@
 
 				<ul>
 					<li>
-						<a href="/" class="text-lg">
+						<a href="/" class="text-lg" data-sveltekit-reload>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								class="h-5 w-5"
