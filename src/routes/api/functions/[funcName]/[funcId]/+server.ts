@@ -135,8 +135,8 @@ export async function POST({ params, request }) {
 			rowDate: Date;
 		};
 		if (type.toLowerCase() === 'progress' && typeof message === 'object') {
-			progressLogger(func, message as {});
-			message = message?.['progId'] ?? '';
+			// progressLogger(func, message as {});
+			message = JSON.stringify(message);
 		}
 		rowDate = new Date(rowDate);
 

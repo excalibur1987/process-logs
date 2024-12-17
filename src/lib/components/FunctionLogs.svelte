@@ -53,7 +53,7 @@
 		logs.forEach((log) => {
 			if (log.type === 'PROGRESS' && log.progress) {
 				try {
-					const progressData = log.progress;
+					const progressData = JSON.parse(log.message);
 					console.log(
 						'🚀 ~ file: FunctionLogs.svelte:74 ~ logs.forEach ~ progressData:',
 						progressData

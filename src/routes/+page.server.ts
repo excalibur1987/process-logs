@@ -8,7 +8,7 @@ export const load: PageServerLoad = async () => {
 	const sevenDaysAgo = new Date();
 	sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 1);
 
-	// Get all functions for total counts
+	// // Get all functions for total counts
 	const allResults = await db
 		.select({
 			funcId: functionProgress.funcId,
@@ -19,7 +19,8 @@ export const load: PageServerLoad = async () => {
 		.where(
 			and(
 				gte(functionProgress.startDate, sevenDaysAgo.toISOString()),
-				lte(functionProgress.startDate, today.toISOString())
+				lte(functionProgress.startDate, today.toISOString()),
+				isNull(functionProgress.parentId)
 			)
 		);
 
