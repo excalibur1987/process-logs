@@ -30,6 +30,7 @@
 		value: number;
 		max: number;
 		duration?: number;
+		startDate: Date;
 		lastUpdated: Date;
 		completed: boolean;
 		percentage: number;
@@ -55,9 +56,15 @@
 						description: accumulatedLog?.[log.funcId]?.[progId]?.description ?? data.description,
 						value: data.value,
 						max: accumulatedLog?.[log.funcId]?.[progId]?.max ?? data.max,
-						duration: accumulatedLog?.[log.funcId]?.[progId]?.duration ?? data.duration,
+						duration:
+							(new Date(log.rowDate).getTime() -
+								new Date(
+									accumulatedLog?.[log.funcId]?.[progId]?.startDate ?? log.rowDate ?? new Date()
+								).getTime()) /
+							1000,
+						startDate: new Date(accumulatedLog?.[log.funcId]?.[progId]?.startDate ?? log.rowDate),
 						lastUpdated: new Date(
-							accumulatedLog?.[log.funcId]?.[progId]?.lastUpdated ?? data.lastUpdated
+							accumulatedLog?.[log.funcId]?.[progId]?.lastUpdated ?? log.rowDate
 						),
 						completed,
 						percentage
@@ -220,7 +227,14 @@
 										<div class="text-sm text-base-content/70">{progress.description}</div>
 									</div>
 									<div class="text-sm font-medium">
-										{Math.round(progress.percentage)}%
+										{#if progress.duration}
+											<div class="text-sm text-base-content/60">
+												{Math.ceil(progress.duration)} seconds
+											</div>
+										{/if}
+										<div class="text-sm text-base-content/60">
+											{Math.round(progress.percentage)}%
+										</div>
 									</div>
 								</div>
 								<div class="w-full">
@@ -232,11 +246,6 @@
 										max={progress.max}
 									></progress>
 								</div>
-								{#if progress.duration}
-									<div class="text-xs text-base-content/60">
-										Estimated time remaining: {Math.ceil(progress.duration)} seconds
-									</div>
-								{/if}
 							</div>
 						</div>
 					{/each}
