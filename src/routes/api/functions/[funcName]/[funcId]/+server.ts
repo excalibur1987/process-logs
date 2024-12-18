@@ -1,12 +1,10 @@
 import { db } from '$lib/db';
-import { functionLogs, functionProgress, functionProgressTracking } from '$lib/db/schema';
+import { functionLogs, functionProgress } from '$lib/db/schema';
 import type { FunctionInstance } from '$lib/db/utils';
 import { getFunctionInstanceById, getFunctionInstanceBySlug } from '$lib/db/utils';
-import type { ProgressData } from '$lib/types';
-import { isProgressData } from '$lib/utils/progress';
 import { validateWithContext } from '$lib/utils/zod-error';
 import { json } from '@sveltejs/kit';
-import { and, desc, eq, gt } from 'drizzle-orm';
+import { and, eq, gt } from 'drizzle-orm';
 import { z } from 'zod';
 
 export async function GET({ params, url }) {
@@ -47,16 +45,6 @@ export async function GET({ params, url }) {
 			.from(functionLogs)
 			.where(and(...conditions))
 			.orderBy(functionLogs.rowDate);
-
-		logs = await Promise.all(
-			logs.map(async (log) => {
-				if (log.type === 'PROGRESS') {
-					const lastProgress = await getLastProgress(func);
-					return { ...log, message: JSON.stringify(lastProgress) };
-				}
-				return log;
-			})
-		);
 
 		return json({
 			function: func,
@@ -132,7 +120,7 @@ export async function POST({ params, request }) {
 			rowDate = new Date().toISOString()
 		} = JSON.parse(data) as {
 			type: string;
-			message: string | ProgressData;
+			message: string;
 			traceBack: string | null;
 			rowDate: Date;
 		};
@@ -140,21 +128,14 @@ export async function POST({ params, request }) {
 		// Handle progress data
 		if (type.toLowerCase() === 'progress') {
 			if (typeof message === 'object') {
-				if (!isProgressData(message)) {
-					throw new Error('Invalid progress data format');
-				}
 				message = JSON.stringify(message);
-			} else if (typeof message === 'string') {
+			} else {
 				try {
 					const parsed = JSON.parse(message);
-					if (!isProgressData(parsed)) {
-						throw new Error('Invalid progress data format');
-					}
+					message = JSON.stringify(parsed);
 				} catch (e) {
-					throw new Error('Invalid progress data JSON');
+					console.error('Invalid progress data JSON', message);
 				}
-			} else {
-				throw new Error('Invalid progress message type');
 			}
 		}
 
@@ -165,7 +146,7 @@ export async function POST({ params, request }) {
 			.values({
 				funcId: func.funcId,
 				type,
-				message: message.toString(),
+				message: message,
 				traceBack,
 				rowDate: rowDate ? rowDate.toISOString() : new Date().toISOString()
 			})
@@ -178,89 +159,5 @@ export async function POST({ params, request }) {
 			{ error: error instanceof Error ? error.message : 'An unknown error occurred' },
 			{ status: 400 }
 		);
-	}
-}
-
-async function getLastProgress(func: FunctionInstance) {
-	const lastProgress = await db
-		.select({
-			prog_id: functionProgressTracking.progId,
-			title: functionProgressTracking.title,
-			description: functionProgressTracking.description,
-			value: functionProgressTracking.currentValue,
-			max: functionProgressTracking.maxValue,
-			duration: functionProgressTracking.duration
-		})
-		.from(functionProgressTracking)
-		.where(eq(functionProgressTracking.funcId, func.funcId))
-		.orderBy(desc(functionProgressTracking.lastUpdated))
-		.limit(1);
-	return lastProgress[0];
-}
-
-async function progressLogger(func: FunctionInstance, message: object) {
-	const schema = z.object({
-		prog_id: z.string(),
-		title: z.string(),
-		description: z.string(),
-		value: z.number(),
-		max: z.number().nullable(),
-		duration: z.number().optional()
-	});
-	try {
-		const progressData = validateWithContext(schema, message, 'progressLogger');
-
-		let [progress] = await db
-			.select()
-			.from(functionProgressTracking)
-			.where(
-				and(
-					eq(functionProgressTracking.funcId, func.funcId),
-					eq(functionProgressTracking.progId, progressData.prog_id)
-				)
-			)
-			.limit(1);
-		if (progress) {
-			await db
-				.update(functionProgressTracking)
-				.set({
-					currentValue: progressData?.value?.toFixed(2) ?? '0',
-					lastUpdated: new Date().toISOString()
-				})
-				.where(eq(functionProgressTracking.id, progress.id));
-		} else {
-			await db
-				.insert(functionProgressTracking)
-				.values({
-					funcId: func.funcId,
-					progId: progressData.prog_id,
-					title: progressData?.title ?? '',
-					description: progressData?.description ?? '',
-					currentValue: progressData?.value?.toFixed(2) ?? '0',
-					maxValue: progressData?.max?.toFixed(2),
-					duration: progressData?.duration?.toFixed(2) ?? '0',
-					lastUpdated: new Date().toISOString(),
-					completed: progressData?.max ? progressData?.value >= progressData?.max : false
-				})
-				.onConflictDoUpdate({
-					target: [functionProgressTracking.funcId, functionProgressTracking.progId],
-					set: {
-						currentValue: progressData?.value?.toFixed(2) ?? '0',
-						lastUpdated: new Date().toISOString()
-					}
-				});
-		}
-
-		return {
-			success: true,
-			progId: progressData.prog_id
-		};
-	} catch (error) {
-		console.error('Error updating progress:', error);
-		return {
-			success: false,
-			progId: null,
-			error: error instanceof Error ? error.message : 'An unknown error occurred'
-		};
 	}
 }

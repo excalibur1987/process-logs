@@ -4,7 +4,7 @@ export type FunctionProgress = typeof functionProgress.$inferSelect;
 export type FunctionHeader = typeof functionHeaders.$inferSelect;
 
 export interface ProgressData {
-	prog_id: string;
+	progress_id: string;
 	title: string;
 	description: string;
 	value: number;
