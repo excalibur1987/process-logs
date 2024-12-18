@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import type { FunctionLog, ProgressData } from '$lib/types';
 	import type { FunctionInstance } from '$lib/db/utils';
-	import { isProgressData, calculateProgressStats } from '$lib/utils/progress';
+	import { calculateProgressStats } from '$lib/utils/progress';
 
 	interface Props {
 		func: FunctionInstance;
@@ -42,38 +42,31 @@
 
 		try {
 			const data = typeof log.message === 'string' ? JSON.parse(log.message) : log.message;
-			console.log('🚀 ~ file: FunctionLogs.svelte:45 ~ updateProgressState ~ data:', data);
-			if (!isProgressData(data)) {
-				console.error('Invalid progress data format:', data);
-				return accumulatedLog;
-			}
 
 			const { percentage, completed } = calculateProgressStats(data.value, data.max);
+			const progId = data?.progress_id ?? data?.['prog_id'] ?? '';
 			accumulatedLog = {
 				...accumulatedLog,
 				[log.funcId]: {
 					...accumulatedLog[log.funcId],
-					[data.prog_id]: {
-						progId: data.prog_id,
-						title: data.title,
-						description: data.description,
+					[progId]: {
+						progId,
+						title: accumulatedLog?.[log.funcId]?.[progId]?.title ?? data.title,
+						description: accumulatedLog?.[log.funcId]?.[progId]?.description ?? data.description,
 						value: data.value,
-						max: data.max,
-						duration: data.duration,
-						lastUpdated: new Date(data.lastUpdated),
+						max: accumulatedLog?.[log.funcId]?.[progId]?.max ?? data.max,
+						duration: accumulatedLog?.[log.funcId]?.[progId]?.duration ?? data.duration,
+						lastUpdated: new Date(
+							accumulatedLog?.[log.funcId]?.[progId]?.lastUpdated ?? data.lastUpdated
+						),
 						completed,
 						percentage
 					}
 				}
 			};
 
-			console.log(
-				'🚀 ~ file: FunctionLogs.svelte:54 ~ updateProgressState ~ accumulatedLog:',
-				accumulatedLog
-			);
 			return accumulatedLog;
 		} catch (e) {
-			console.log('🚀 ~ file: FunctionLogs.svelte:74 ~ logs.forEach ~ e:', log.message);
 			console.error('Failed to update progress state:', e);
 		}
 		return accumulatedLog;
@@ -81,7 +74,6 @@
 
 	// Update progress state when new logs come in
 	$effect(() => {
-		$inspect('🚀 ~ file: FunctionLogs.svelte:84 ~ $effect ~ logs:', logs);
 		progressStatesByFunc = logs.reduce(updateProgressState, {} as typeof progressStatesByFunc);
 	});
 
