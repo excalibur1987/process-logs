@@ -79,6 +79,14 @@
 		return accumulatedLog;
 	}
 
+	let currentTime = $state(new Date());
+
+	$effect(() => {
+		setInterval(() => {
+			currentTime = new Date();
+		}, 1000);
+	});
+
 	// Update progress state when new logs come in
 	$effect(() => {
 		progressStatesByFunc = logs.reduce(updateProgressState, {} as typeof progressStatesByFunc);
@@ -227,9 +235,14 @@
 										<div class="text-sm text-base-content/70">{progress.description}</div>
 									</div>
 									<div class="text-sm font-medium">
-										{#if progress.duration}
+										{#if !progress.completed}
 											<div class="text-sm text-base-content/60">
-												{Math.ceil(progress.duration)} seconds
+												{Math.ceil((currentTime.getTime() - progress.startDate.getTime()) / 1000)}
+												seconds
+											</div>
+										{:else}
+											<div class="text-sm text-base-content/60">
+												{Math.ceil(progress.duration ?? 0)} seconds
 											</div>
 										{/if}
 										<div class="text-sm text-base-content/60">
