@@ -37,22 +37,22 @@
 
 	let progressStatesByFunc = $state<Record<number, Record<string, ProgressState>>>({});
 
-	function updateProgressState(log: FunctionLog) {
-		if (log.type !== 'PROGRESS') return;
+	function updateProgressState(accumulatedLog: typeof progressStatesByFunc, log: FunctionLog) {
+		if (log.type !== 'PROGRESS') return accumulatedLog;
 
 		try {
 			const data = typeof log.message === 'string' ? JSON.parse(log.message) : log.message;
+			console.log('🚀 ~ file: FunctionLogs.svelte:45 ~ updateProgressState ~ data:', data);
 			if (!isProgressData(data)) {
 				console.error('Invalid progress data format:', data);
-				return;
+				return accumulatedLog;
 			}
 
 			const { percentage, completed } = calculateProgressStats(data.value, data.max);
-
-			progressStatesByFunc = {
-				...progressStatesByFunc,
+			accumulatedLog = {
+				...accumulatedLog,
 				[log.funcId]: {
-					...progressStatesByFunc[log.funcId],
+					...accumulatedLog[log.funcId],
 					[data.prog_id]: {
 						progId: data.prog_id,
 						title: data.title,
@@ -66,15 +66,23 @@
 					}
 				}
 			};
+
+			console.log(
+				'🚀 ~ file: FunctionLogs.svelte:54 ~ updateProgressState ~ accumulatedLog:',
+				accumulatedLog
+			);
+			return accumulatedLog;
 		} catch (e) {
 			console.log('🚀 ~ file: FunctionLogs.svelte:74 ~ logs.forEach ~ e:', log.message);
 			console.error('Failed to update progress state:', e);
 		}
+		return accumulatedLog;
 	}
 
 	// Update progress state when new logs come in
 	$effect(() => {
-		logs.forEach(updateProgressState);
+		$inspect('🚀 ~ file: FunctionLogs.svelte:84 ~ $effect ~ logs:', logs);
+		progressStatesByFunc = logs.reduce(updateProgressState, {} as typeof progressStatesByFunc);
 	});
 
 	let logsContainer = $state<HTMLDivElement | null>(null);
