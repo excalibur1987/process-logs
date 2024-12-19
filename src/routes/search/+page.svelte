@@ -15,6 +15,7 @@
 	let endDate = $state($page.url.searchParams.get('endDate') || data.defaultDates.endDate);
 	let status = $state($page.url.searchParams.get('status') || 'all');
 	let parentOnly = $state($page.url.searchParams.get('parentOnly') === 'true');
+	let selectedFuncIds = $state<number[]>([]);
 	const limit = 10;
 
 	// Initialize selectedFunction from URL if funcHeaderId exists
@@ -78,6 +79,28 @@
 
 	let pagination = $derived(form?.pagination || data.pagination);
 	let results = $derived(form?.results || data.results);
+
+	function handleSelectAll(event: Event) {
+		const checked = (event.target as HTMLInputElement).checked;
+		if (checked) {
+			selectedFuncIds = results.filter((func) => !func.finished).map((func) => func.funcId);
+		} else {
+			selectedFuncIds = [];
+		}
+	}
+
+	function handleSelectFunction(funcId: number, checked: boolean) {
+		if (checked) {
+			selectedFuncIds = [...selectedFuncIds, funcId];
+		} else {
+			selectedFuncIds = selectedFuncIds.filter((id) => id !== funcId);
+		}
+	}
+
+	$effect(() => {
+		// Reset selected functions when page changes or search results update
+		selectedFuncIds = [];
+	});
 </script>
 
 <div class="p-8">
@@ -194,10 +217,59 @@
 		</button>
 	</form>
 
+	<div class="mb-4 flex items-center justify-between">
+		<div>
+			{#if selectedFuncIds.length > 0}
+				<form
+					method="POST"
+					action="?/markAsFailed"
+					use:enhance={() => {
+						loading = true;
+						return async ({ update }) => {
+							loading = false;
+							await update();
+						};
+					}}
+				>
+					{#each selectedFuncIds as funcId}
+						<input type="hidden" name="funcIds[]" value={funcId} />
+					{/each}
+					<button
+						type="submit"
+						class="btn btn-error btn-sm grid place-items-center"
+						style="grid-template-areas: 'stack';"
+						disabled={loading}
+				>
+					<span
+							style="grid-area: stack;"
+							class="loading loading-spinner col-start-1"
+							class:invisible={!loading}
+						></span>
+						<span style="grid-area: stack;" class="col-start-1" class:invisible={loading}>
+							Mark as Failed
+						</span>
+					</button>
+
+				</form>
+			{/if}
+		</div>
+	</div>
+
 	<div class="overflow-x-auto">
 		<table class="table">
 			<thead>
 				<tr>
+					<th>
+						<label>
+							<input
+								type="checkbox"
+								class="checkbox"
+								onchange={handleSelectAll}
+								checked={selectedFuncIds.length > 0 &&
+									selectedFuncIds.length === results.filter((func) => !func.finished).length}
+							/>
+						</label>
+					</th>
 					<th>Function Name</th>
 					<th>Start Date</th>
 					<th>End Date</th>
@@ -210,6 +282,18 @@
 				{#if results?.length > 0}
 					{#each results as func}
 						<tr>
+							<td>
+								<label>
+									<input
+										type="checkbox"
+										class="checkbox"
+										disabled={func.finished}
+										checked={selectedFuncIds.includes(func.funcId)}
+										onchange={(e) =>
+											handleSelectFunction(func.funcId, (e.target as HTMLInputElement).checked)}
+									/>
+								</label>
+							</td>
 							<td>{func.funcName}</td>
 							<td>{new Date(func.startDate).toLocaleString()}</td>
 							<td>
@@ -232,7 +316,7 @@
 					{/each}
 				{:else}
 					<tr>
-						<td colspan="6" class="py-4 text-center">No results found</td>
+						<td colspan="7" class="py-4 text-center">No results found</td>
 					</tr>
 				{/if}
 			</tbody>

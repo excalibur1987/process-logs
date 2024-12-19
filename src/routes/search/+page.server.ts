@@ -1,7 +1,7 @@
 import { db } from '$lib/db';
-import { functionHeaders, functionProgress } from '$lib/db/schema';
+import { functionHeaders, functionLogs, functionProgress } from '$lib/db/schema';
 import { format } from 'date-fns';
-import { and, between, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, between, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {
@@ -191,5 +191,51 @@ export const actions = {
 				totalCount
 			}
 		};
+	},
+
+	markAsFailed: async ({ request }) => {
+		const formData = await request.formData();
+		const funcIds = formData.getAll('funcIds[]').map((id) => parseInt(id.toString()));
+
+		if (funcIds.length === 0) {
+			return { success: false, error: 'No functions selected' };
+		}
+
+		try {
+			const lastLogDates = db.$with('last_log_dates').as(
+				db
+					.select({
+						funcId: functionProgress.funcId,
+						lastLogDate:
+							sql<Date>`coalesce(max(${functionLogs.rowDate}), ${functionProgress.startDate} + interval '15 minutes')`
+								.mapWith(Date)
+								.as('last_log_date')
+					})
+					.from(functionProgress)
+					.leftJoin(functionLogs, eq(functionProgress.funcId, functionLogs.funcId))
+					.where(inArray(functionProgress.funcId, funcIds))
+					.groupBy(functionProgress.funcId, functionProgress.startDate)
+			);
+
+			const updatedFuncsQuery = db
+				.with(lastLogDates)
+				.update(functionProgress)
+				.set({
+					finished: true,
+					success: false,
+					endDate: sql<Date>`COALESCE(${lastLogDates.lastLogDate}, ${new Date().toISOString()})`
+				})
+				.from(lastLogDates)
+				.where(eq(functionProgress.funcId, lastLogDates.funcId))
+				.returning()
+				.prepare('updated_funcs');
+
+			const updatedFuncs = await updatedFuncsQuery.execute();
+
+			return { success: true, updatedFuncs };
+		} catch (err) {
+			console.error('Error marking functions as failed:', err);
+			return { success: false, error: 'Failed to update functions' };
+		}
 	}
 } satisfies Actions;
