@@ -12,7 +12,14 @@
 
 <div class="p-8">
 	<div class="mb-8 flex items-center justify-between">
-		<h1 class="text-3xl font-bold">Function Details</h1>
+		<div>
+			<h1 class="text-3xl font-bold">Function Details</h1>
+			{#if !func.finished}
+				<form method="POST" action="?/markAsFailed">
+					<button class="btn btn-error btn-sm mt-2" type="submit"> Mark as Failed </button>
+				</form>
+			{/if}
+		</div>
 		<a href="/search" class="btn">Back to Search</a>
 	</div>
 
