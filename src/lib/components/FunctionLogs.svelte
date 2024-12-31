@@ -235,7 +235,7 @@
 										<div class="text-sm text-base-content/70">{progress.description}</div>
 									</div>
 									<div class="text-sm font-medium">
-										{#if !progress.completed}
+										{#if !progress.completed && !func.finished}
 											<div class="text-sm text-base-content/60">
 												{Math.ceil((currentTime.getTime() - progress.startDate.getTime()) / 1000)}
 												seconds
@@ -246,7 +246,7 @@
 											</div>
 										{/if}
 										<div class="text-sm text-base-content/60">
-											{Math.round(progress.percentage)}%
+											{Math.round(progress.percentage)}% ({progress.value} / {progress.max})
 										</div>
 									</div>
 								</div>
