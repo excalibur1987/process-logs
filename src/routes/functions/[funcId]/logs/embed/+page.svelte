@@ -10,11 +10,27 @@
 
 	let { data }: Props = $props();
 	const { function: func, logs } = data;
+
+	// Set up polling for updates
+	let intervalId: NodeJS.Timeout;
+
 	onMount(() => {
-		if (!func) {
-			setTimeout(() => {
-				invalidateAll();
-			}, 1000);
+		// Poll for updates every 10 seconds
+		intervalId = setInterval(() => {
+			invalidateAll();
+		}, 10000);
+
+		return () => {
+			if (intervalId) {
+				clearInterval(intervalId);
+			}
+		};
+	});
+
+	$effect(() => {
+		// Stop polling when function is finished
+		if (func?.finished && intervalId) {
+			clearInterval(intervalId);
 		}
 	});
 </script>
