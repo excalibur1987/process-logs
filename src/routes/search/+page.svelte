@@ -239,8 +239,8 @@
 						class="btn btn-error btn-sm grid place-items-center"
 						style="grid-template-areas: 'stack';"
 						disabled={loading}
-				>
-					<span
+					>
+						<span
 							style="grid-area: stack;"
 							class="loading loading-spinner col-start-1"
 							class:invisible={!loading}
@@ -249,7 +249,6 @@
 							Mark as Failed
 						</span>
 					</button>
-
 				</form>
 			{/if}
 		</div>

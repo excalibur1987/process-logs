@@ -1,10 +1,10 @@
 import { db } from '$lib/db';
-import { functionLogs, functionProgress, functionProgressTracking } from '$lib/db/schema';
+import { functionLogs, functionProgress } from '$lib/db/schema';
 import type { FunctionInstance } from '$lib/db/utils';
 import { getFunctionInstanceById, getFunctionInstanceBySlug } from '$lib/db/utils';
 import { validateWithContext } from '$lib/utils/zod-error';
 import { json } from '@sveltejs/kit';
-import { and, eq, gt, sql } from 'drizzle-orm';
+import { and, eq, gt } from 'drizzle-orm';
 import { z } from 'zod';
 
 export async function GET({ params, url }) {
@@ -40,9 +40,8 @@ export async function GET({ params, url }) {
 			conditions.push(gt(functionLogs.rowDate, lastLogDate));
 		}
 
-
 		// Get function logs with join to get function details and progress data
-		const logsQuery =  db
+		const logsQuery = db
 			.select({
 				id: functionLogs.id,
 				funcId: functionLogs.funcId,
@@ -55,8 +54,7 @@ export async function GET({ params, url }) {
 					funcName: functionProgress.slug,
 					funcSlug: functionProgress.slug,
 					parentId: functionProgress.parentId
-				},
-				
+				}
 			})
 			.from(functionLogs)
 			.leftJoin(functionProgress, eq(functionLogs.funcId, functionProgress.funcId))
