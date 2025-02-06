@@ -9,6 +9,9 @@ dotenv.config();
 const config = {
 	kit: {
 		adapter: adapter(),
+		csrf: {
+			checkOrigin: false
+		},
 		alias: {
 			$lib: './src/lib',
 			$src: './src'
