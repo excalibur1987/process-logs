@@ -45,6 +45,14 @@ export async function GET({ params, request }) {
 
 		const startDate = new Date(new Date().getTime() - interval * intervals[period]);
 
+		const queryArgs = JSON.parse(args ? JSON.stringify(args) : '{}') as Record<string, any>;
+
+		const argKeys = Object.keys(queryArgs || {});
+
+		const filters = argKeys
+			.filter((key) => queryArgs[key] !== undefined && key !== 'force_run_wrapper')
+			.map((key) => eq(sql`${functionProgress.args}->>'${key}'`, JSON.stringify(queryArgs[key])));
+
 		const query = db
 			.select({
 				count: sql<number>`count(*)`.mapWith(Number).as('count'),
@@ -61,8 +69,7 @@ export async function GET({ params, request }) {
 				and(
 					eq(functionProgress.funcId, funcHeader.id),
 					gte(functionProgress.startDate, startDate.toISOString()),
-					sql`${functionProgress.args}::text  = ${JSON.stringify(args || '{}')}::text`,
-					sql`${JSON.stringify(args || '{}')}::text = ${functionProgress.args}::text`
+					...filters
 				)
 			);
 
