@@ -109,8 +109,7 @@
 					<div class="card-body">
 						<div class="flex items-start justify-between">
 							<div>
-								<h2 class="card-title">{item.title}</h2>
-								<p class="mt-1 text-base-content/70">{item.description}</p>
+								<h2 class="card-title">{item.title || item.description}</h2>
 							</div>
 							<div class="flex items-center gap-2">
 								<span

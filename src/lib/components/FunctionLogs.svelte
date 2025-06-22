@@ -231,8 +231,7 @@
 							<div class="space-y-2">
 								<div class="flex items-center justify-between">
 									<div>
-										<div class="font-medium">{progress.title}</div>
-										<div class="text-sm text-base-content/70">{progress.description}</div>
+										<div class="font-medium">{progress.title || progress.description}</div>
 									</div>
 									<div class="text-sm font-medium">
 										{#if !progress.completed && !func.finished}
