@@ -70,9 +70,10 @@ export async function GET({ params, request }) {
 					sql<number>`extract(epoch from avg(${functionProgress.endDate} - ${functionProgress.startDate}))`
 						.mapWith(Number)
 						.as('avg_duration'),
-				pending: sql<number>`sum(case when ${functionProgress.finished} is null then 1 else 0 end)`
-					.mapWith(Number)
-					.as('pending')
+				pending:
+					sql<number>`sum(case when coalesce(${functionProgress.finished}, false) = false then 1 else 0 end)`
+						.mapWith(Number)
+						.as('pending')
 			})
 			.from(functionProgress)
 			.where(
