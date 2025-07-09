@@ -53,7 +53,12 @@ export async function GET({ params, request }) {
 		if (argKeys.length > 0) {
 			filters = argKeys
 				.filter((key) => queryArgs[key] !== undefined && key !== 'force_run_wrapper')
-				.map((key) => eq(sql`${functionProgress.args}->>'${key}'`, JSON.stringify(queryArgs[key])));
+				.map((key) =>
+					eq(
+						sql`coalesce((${functionProgress.args}->>'${key}')::text, '')`,
+						JSON.stringify(queryArgs[key])
+					)
+				);
 		}
 		const query = db
 			.select({
