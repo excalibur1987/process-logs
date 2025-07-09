@@ -49,10 +49,12 @@ export async function GET({ params, request }) {
 
 		const argKeys = Object.keys(queryArgs || {});
 
-		const filters = argKeys
-			.filter((key) => queryArgs[key] !== undefined && key !== 'force_run_wrapper')
-			.map((key) => eq(sql`${functionProgress.args}->>'${key}'`, JSON.stringify(queryArgs[key])));
-
+		let filters: any[] = [];
+		if (argKeys.length > 0) {
+			filters = argKeys
+				.filter((key) => queryArgs[key] !== undefined && key !== 'force_run_wrapper')
+				.map((key) => eq(sql`${functionProgress.args}->>'${key}'`, JSON.stringify(queryArgs[key])));
+		}
 		const query = db
 			.select({
 				count: sql<number>`count(*)`.mapWith(Number).as('count'),
