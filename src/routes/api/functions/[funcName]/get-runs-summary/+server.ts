@@ -74,7 +74,7 @@ export async function GET({ params, request }) {
 			.from(functionProgress)
 			.where(
 				and(
-					eq(functionProgress.funcId, funcHeader.id),
+					eq(functionProgress.funcHeaderId, funcHeader.id),
 					gte(functionProgress.startDate, startDate.toISOString()),
 					...filters
 				)
