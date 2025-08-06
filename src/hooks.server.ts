@@ -22,6 +22,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 		`📝 ${getStatusColor(response.status)}${timestamp} ${event.request.method} ${event.url.pathname}${event.url.search} ➜ ${response.status}\x1b[0m`
 	);
 
+	if (response.status >= 400) {
+		const requestBody = await event.request.json();
+		console.log(`🔍 \x1b[33m${JSON.stringify(requestBody, null, 2)}\x1b[0m`);
+	}
+
 	// Check if the request is for the embed route
 	if (event.url.pathname.includes('/functions/') && event.url.pathname.includes('/logs/embed')) {
 		// Add CORS headers for embed routes
