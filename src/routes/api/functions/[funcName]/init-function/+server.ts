@@ -55,19 +55,21 @@ export async function POST({ params, request }) {
 			}
 		}
 
-		const [{ funcId }] = await db
-			.insert(functionProgress)
-			.values({
-				slug: funcSlug,
-				funcHeaderId: funcHeader.id,
-				parentId: parentFunction?.funcId ?? null,
-				args: args,
-				source: source,
-				startDate: new Date().toISOString(),
-				finished: false,
-				success: false
-			})
-			.returning({ funcId: functionProgress.funcId });
+		await db.insert(functionProgress).values({
+			slug: funcSlug,
+			funcHeaderId: funcHeader.id,
+			parentId: parentFunction?.funcId ?? null,
+			args: args,
+			source: source,
+			startDate: new Date().toISOString(),
+			finished: false,
+			success: false
+		});
+		const funcId = await db
+			.select()
+			.from(functionProgress)
+			.where(eq(functionProgress.slug, funcSlug))
+			.then(([result]) => result?.funcId);
 
 		return json({ funcId });
 	} catch (error) {
