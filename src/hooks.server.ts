@@ -13,18 +13,21 @@ export const handle: Handle = async ({ event, resolve }) => {
 		return '\x1b[0m'; // Reset
 	};
 
-	const timestamp = format(
-		new Date(startTime.getTime() + 3 * 60 * 60 * 1000),
-		'yyyy-MM-dd HH:mm:ss'
-	);
+	if (event.url.pathname.includes('/api/functions/')) {
+		const timestamp = format(
+			new Date(startTime.getTime() + 3 * 60 * 60 * 1000),
+			'yyyy-MM-dd HH:mm:ss'
+		);
 
-	console.log(
-		`📝 ${getStatusColor(response.status)}${timestamp} ${event.request.method} ${event.url.pathname}${event.url.search} ➜ ${response.status}\x1b[0m`
-	);
+		console.log(
+			`📝 ${getStatusColor(response.status)}${timestamp} ${event.request.method} ` +
+				`${event.url.pathname}${event.url.search} ➜ ${response.status}\x1b[0m`
+		);
 
-	if (response.status >= 400) {
-		const requestBody = await event.request.json();
-		console.log(`🔍 \x1b[33m${JSON.stringify(requestBody, null, 2)}\x1b[0m`);
+		if (response.status >= 400) {
+			const requestBody = await event.request.json();
+			console.log(`🔍 \x1b[33m${JSON.stringify(requestBody, null, 2)}\x1b[0m`);
+		}
 	}
 
 	// Check if the request is for the embed route
