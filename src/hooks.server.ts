@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const startTime = new Date();
+	const requestClone = event.request.clone();
 	const response = await resolve(event);
 
 	// Log request information
@@ -25,9 +26,27 @@ export const handle: Handle = async ({ event, resolve }) => {
 		);
 
 		if (response.status >= 400) {
-			const requestClone = event.request.clone();
-			const requestBody = await requestClone.json();
-			console.log(`🔍 \x1b[33m${JSON.stringify(requestBody, null, 2)}\x1b[0m`);
+			try {
+				const requestBody = await requestClone.json();
+				console.log(`🔍 Request Body:\n\x1b[33m${JSON.stringify(requestBody, null, 2)}\x1b[0m`);
+
+				// Get response body for error details
+				const responseClone = response.clone();
+				const responseBody = await responseClone.json();
+				if (responseBody.error) {
+					console.log(`❌ Error Details:\n\x1b[31m${responseBody.error}\x1b[0m`);
+
+					// Get the source file path from the URL
+					const sourcePath = event.url.pathname
+						.replace('/api/', 'src/routes/api/')
+						.replace(/\/$/, '/+server.ts');
+
+					console.log(`📁 Source File: \x1b[36m${sourcePath}\x1b[0m`);
+				}
+			} catch (e) {
+				const error = e as Error;
+				console.log(`❌ Error parsing request/response: ${error.message}`);
+			}
 		}
 	}
 

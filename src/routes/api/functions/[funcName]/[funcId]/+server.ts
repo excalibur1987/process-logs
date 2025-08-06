@@ -103,15 +103,22 @@ export async function PATCH({ params, request }) {
 
 // Endpoint to add logs to a function
 export async function POST({ params, request }) {
-	let func: FunctionInstance;
-
-	if (parseInt(params.funcId).toString().length !== params.funcId.length) {
-		func = await getFunctionInstanceBySlug(params.funcId);
-	} else {
-		func = await getFunctionInstanceById(parseInt(params.funcId));
-	}
-
 	try {
+		let func: FunctionInstance;
+
+		if (!params.funcId) {
+			throw new Error('Function ID is required');
+		}
+
+		if (parseInt(params.funcId).toString().length !== params.funcId.length) {
+			func = await getFunctionInstanceBySlug(params.funcId);
+		} else {
+			func = await getFunctionInstanceById(parseInt(params.funcId));
+		}
+
+		if (!func) {
+			throw new Error(`Function not found with ID: ${params.funcId}`);
+		}
 		const data = await request.json();
 		let {
 			type,
