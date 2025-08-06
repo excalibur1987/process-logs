@@ -25,7 +25,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 		);
 
 		if (response.status >= 400) {
-			const requestBody = await event.request.json();
+			const requestClone = event.request.clone();
+			const requestBody = await requestClone.json();
 			console.log(`🔍 \x1b[33m${JSON.stringify(requestBody, null, 2)}\x1b[0m`);
 		}
 	}
