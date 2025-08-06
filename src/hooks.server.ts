@@ -5,8 +5,15 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const response = await resolve(event);
 
 	// Log request information
+	const getStatusColor = (status: number): string => {
+		if (status >= 200 && status < 300) return '\x1b[32m'; // Green
+		if (status >= 300 && status < 400) return '\x1b[33m'; // Yellow
+		if (status >= 400) return '\x1b[31m'; // Red
+		return '\x1b[0m'; // Reset
+	};
+
 	console.log(
-		`📝 ${event.request.method} ${event.url.pathname}${event.url.search} ➜ ${response.status}`
+		`📝 ${getStatusColor(response.status)}${event.request.method} ${event.url.pathname}${event.url.search} ➜ ${response.status}\x1b[0m`
 	);
 
 	// Check if the request is for the embed route
