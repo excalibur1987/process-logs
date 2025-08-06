@@ -1,4 +1,5 @@
 import type { Handle } from '@sveltejs/kit';
+import { format } from 'date-fns';
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const startTime = new Date();
@@ -12,8 +13,13 @@ export const handle: Handle = async ({ event, resolve }) => {
 		return '\x1b[0m'; // Reset
 	};
 
+	const timestamp = format(
+		new Date(startTime.getTime() + 3 * 60 * 60 * 1000),
+		'yyyy-MM-dd HH:mm:ss'
+	);
+
 	console.log(
-		`📝 ${getStatusColor(response.status)}${event.request.method} ${event.url.pathname}${event.url.search} ➜ ${response.status}\x1b[0m`
+		`📝 ${getStatusColor(response.status)}${timestamp} ${event.request.method} ${event.url.pathname}${event.url.search} ➜ ${response.status}\x1b[0m`
 	);
 
 	// Check if the request is for the embed route
