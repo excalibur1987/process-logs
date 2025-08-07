@@ -4,25 +4,27 @@
 	import SearchSelect from '$lib/components/SearchSelect.svelte';
 	import type { FunctionHeader } from '$lib/types';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	let loading = $state(false);
 	let selectedFunction = $state<FunctionHeader | undefined>(undefined);
-	let currentPage = $state(parseInt($page.url.searchParams.get('page') || '1'));
-	let startDate = $state($page.url.searchParams.get('startDate') || data.defaultDates.startDate);
-	let endDate = $state($page.url.searchParams.get('endDate') || data.defaultDates.endDate);
-	let status = $state($page.url.searchParams.get('status') || 'all');
-	let parentOnly = $state($page.url.searchParams.get('parentOnly') === 'true');
+	let currentPage = $state(parseInt(page.url.searchParams.get('page') || '1'));
+	let startDate = $state(page.url.searchParams.get('startDate') || data.defaultDates.startDate);
+	let endDate = $state(page.url.searchParams.get('endDate') || data.defaultDates.endDate);
+	let status = $state(page.url.searchParams.get('status') || 'all');
+	let parentOnly = $state(page.url.searchParams.get('parentOnly') === 'true');
 	let selectedFuncIds = $state<number[]>([]);
 	const limit = 10;
 
+	const url = $derived.by(() => new URL(page.url));
+
 	// Initialize selectedFunction from URL if funcHeaderId exists
 	$effect(() => {
-		const funcHeaderId = $page.url.searchParams.get('funcHeaderId');
-		const funcName = $page.url.searchParams.get('funcName');
-		const funcSlug = $page.url.searchParams.get('funcSlug');
+		const funcHeaderId = page.url.searchParams.get('funcHeaderId');
+		const funcName = page.url.searchParams.get('funcName');
+		const funcSlug = page.url.searchParams.get('funcSlug');
 		if (funcHeaderId && funcName && funcSlug) {
 			selectedFunction = {
 				id: parseInt(funcHeaderId),
@@ -32,29 +34,6 @@
 		}
 	});
 
-	// Update URL when search parameters change
-	$effect(() => {
-		if (!loading) {
-			const url = new URL($page.url);
-			url.searchParams.set('page', currentPage.toString());
-			url.searchParams.set('startDate', startDate);
-			url.searchParams.set('endDate', endDate);
-			url.searchParams.set('status', status);
-			url.searchParams.set('parentOnly', parentOnly.toString());
-
-			if (selectedFunction) {
-				url.searchParams.set('funcHeaderId', selectedFunction.id.toString());
-				url.searchParams.set('funcName', selectedFunction.funcName);
-				url.searchParams.set('funcSlug', selectedFunction.funcSlug);
-			} else {
-				url.searchParams.delete('funcHeaderId');
-				url.searchParams.delete('funcName');
-				url.searchParams.delete('funcSlug');
-			}
-
-			goto(url.toString(), { replaceState: true });
-		}
-	});
 
 	function handlePageChange(newPage: number) {
 		currentPage = newPage;

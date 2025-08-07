@@ -1,6 +1,6 @@
 <script lang="ts">
 	import '../app.css';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 
 	interface Props {
 		children?: import('svelte').Snippet;
@@ -9,7 +9,7 @@
 	let { children }: Props = $props();
 
 	// Check if we're on an embed page
-	let isEmbedPage = $page.url.pathname.includes('/embed');
+	let isEmbedPage = page.url.pathname.includes('/embed');
 </script>
 
 <div class="drawer lg:drawer-open">
