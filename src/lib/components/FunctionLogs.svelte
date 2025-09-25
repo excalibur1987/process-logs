@@ -269,7 +269,7 @@
 		<div class="space-y-4">
 			{#each logs as log}
 				{@const type = log.type?.toUpperCase()}
-				{#if type !== 'PROGRESS'}
+				{#if !['PROGRESS', 'CALLBACK', 'HTML'].includes(type)}
 					<div
 						class="card border-l-4 bg-base-100 transition-all hover:translate-x-1"
 						class:border-info={type === 'INFO'}
