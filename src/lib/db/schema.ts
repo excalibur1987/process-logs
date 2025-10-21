@@ -32,7 +32,7 @@ export const functionLogs = pgTable(
 			name: 'fk_function_logs_func_id_function_progress'
 		}),
 		index('idx_function_logs_type').on(table.type),
-		index('idx_function_logs_message').on(table.message),
+		// Removed message index due to size constraints - use full-text search instead
 		index('idx_function_logs_func_id_row_date').on(table.funcId, table.rowDate)
 	]
 );
@@ -70,15 +70,29 @@ export const functionProgress = pgTable(
 			table.startDate,
 			table.finished,
 			table.success
-		)
+		),
+		// NEW: Add these composite indexes
+		index('idx_function_progress_parent_id_start_date').on(table.parentId, table.startDate),
+		index('idx_function_progress_func_header_id_start_date').on(
+			table.funcHeaderId,
+			table.startDate
+		),
+		index('idx_function_progress_finished_start_date').on(table.finished, table.startDate)
 	]
 );
 
-export const functionHeaders = pgTable('function_headers', {
-	id: serial().primaryKey().notNull(),
-	funcName: varchar('func_name', { length: 200 }).notNull(),
-	funcSlug: text('func_slug').notNull()
-});
+export const functionHeaders = pgTable(
+	'function_headers',
+	{
+		id: serial().primaryKey().notNull(),
+		funcName: varchar('func_name', { length: 200 }).notNull(),
+		funcSlug: text('func_slug').notNull()
+	},
+	(table) => [
+		// NEW: Add index for funcName searches
+		index('idx_function_headers_func_name').on(table.funcName)
+	]
+);
 
 export const functionProgressTracking = pgTable(
 	'function_progress_tracking',

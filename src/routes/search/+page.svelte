@@ -3,6 +3,8 @@
 	import { enhance } from '$app/forms';
 	import SearchSelect from '$lib/components/SearchSelect.svelte';
 	import SearchSkeleton from '$lib/components/SearchSkeleton.svelte';
+	import FunctionCardSkeleton from '$lib/components/FunctionCardSkeleton.svelte';
+	import ErrorBoundary from '$lib/components/ErrorBoundary.svelte';
 	import type { FunctionHeader } from '$lib/types';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -22,6 +24,7 @@
 	let maxDuration = $state(page.url.searchParams.get('maxDuration') || '');
 	let selectedSources = $state<string[]>([]);
 	let selectedFuncIds = $state<number[]>([]);
+	let searchError = $state<string | null>(null);
 	const limit = 10;
 
 	const url = $derived.by(() => new URL(page.url));
@@ -550,8 +553,14 @@
 	{/if}
 
 	<div class="overflow-x-auto">
-		{#if loading}
-			<SearchSkeleton rows={10} columns={7} />
+		{#if searchError}
+			<ErrorBoundary error={searchError} context="search results" />
+		{:else if loading}
+			<div class="space-y-4">
+				{#each Array(limit) as _, i (i)}
+					<FunctionCardSkeleton />
+				{/each}
+			</div>
 		{:else}
 			<table class="table">
 				<thead>

@@ -73,16 +73,8 @@ export const load: PageServerLoad = async ({ url }) => {
 		}
 	}
 
-	// Get total count
-	const totalCount = await db
-		.select({ count: sql<number>`count(*)`.mapWith(Number) })
-		.from(functionProgress)
-		.innerJoin(functionHeaders, eq(functionProgress.funcHeaderId, functionHeaders.id))
-		.where(and(...filters))
-		.then(([{ count }]) => Number(count));
-
-	// Get paginated results
-	const results = await db
+	// Optimize with parallel execution
+	const baseQuery = db
 		.select({
 			funcId: functionProgress.funcId,
 			parentId: functionProgress.parentId,
@@ -100,9 +92,22 @@ export const load: PageServerLoad = async ({ url }) => {
 		.from(functionProgress)
 		.innerJoin(functionHeaders, eq(functionProgress.funcHeaderId, functionHeaders.id))
 		.where(and(...filters))
-		.orderBy(desc(functionProgress.startDate))
-		.limit(limit)
-		.offset(offset);
+		.$dynamic();
+
+	// Use Promise.all for parallel execution
+	const [countResult, results] = await Promise.all([
+		db
+			.select({ count: sql<number>`count(*)`.mapWith(Number) })
+			.from(functionProgress)
+			.innerJoin(functionHeaders, eq(functionProgress.funcHeaderId, functionHeaders.id))
+			.where(and(...filters)),
+		baseQuery
+			.orderBy(desc(functionProgress.startDate))
+			.limit(limit)
+			.offset(offset)
+	]);
+
+	const totalCount = Number(countResult[0]?.count || 0);
 
 	// Get available sources
 	const sources = await db
@@ -195,16 +200,8 @@ export const actions = {
 			filters.push(inArray(functionProgress.source, sources));
 		}
 
-		// Get total count
-		const totalCount = await db
-			.select({ count: sql<number>`count(*)`.mapWith(Number) })
-			.from(functionProgress)
-			.innerJoin(functionHeaders, eq(functionProgress.funcHeaderId, functionHeaders.id))
-			.where(and(...filters))
-			.then(([{ count }]) => Number(count));
-
-		// Get paginated results
-		const results = await db
+		// Optimize with parallel execution
+		const baseQuery = db
 			.select({
 				funcId: functionProgress.funcId,
 				parentId: functionProgress.parentId,
@@ -222,9 +219,22 @@ export const actions = {
 			.from(functionProgress)
 			.innerJoin(functionHeaders, eq(functionProgress.funcHeaderId, functionHeaders.id))
 			.where(and(...filters))
-			.orderBy(desc(functionProgress.startDate))
-			.limit(limit)
-			.offset(offset);
+			.$dynamic();
+
+		// Use Promise.all for parallel execution
+		const [countResult, results] = await Promise.all([
+			db
+				.select({ count: sql<number>`count(*)`.mapWith(Number) })
+				.from(functionProgress)
+				.innerJoin(functionHeaders, eq(functionProgress.funcHeaderId, functionHeaders.id))
+				.where(and(...filters)),
+			baseQuery
+				.orderBy(desc(functionProgress.startDate))
+				.limit(limit)
+				.offset(offset)
+		]);
+
+		const totalCount = Number(countResult[0]?.count || 0);
 
 		return {
 			results,

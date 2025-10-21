@@ -3,6 +3,9 @@
 	import type { FunctionLog, ProgressData } from '$lib/types';
 	import type { FunctionInstance } from '$lib/db/utils';
 	import { calculateProgressStats } from '$lib/utils/progress';
+	import VirtualLogList from './VirtualLogList.svelte';
+	import LogsSkeleton from './LogsSkeleton.svelte';
+	import ErrorBoundary from './ErrorBoundary.svelte';
 
 	interface Props {
 		func: FunctionInstance;
@@ -30,6 +33,9 @@
 	let funcId = $state(func?.funcId);
 	let funcSlug = $state(func?.headerSlug);
 	let lastLogDate = $state<string | null>(null);
+	let pollingIntervalId = $state<NodeJS.Timeout | undefined>(undefined);
+	let consecutiveEmptyFetches = $state(0);
+	let currentPollingInterval = $state(pollingInterval || 2000);
 
 	// Filtering state
 	let searchQuery = $state('');
@@ -87,6 +93,14 @@
 		return text.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-800">$1</mark>');
 	}
 
+	// Clear all filters
+	function clearAllFilters() {
+		searchQuery = '';
+		selectedLogTypes = new Set(logTypes);
+		timeRangeStart = '';
+		timeRangeEnd = '';
+	}
+
 	// Track progress states by function ID
 	interface ProgressState {
 		progId: string;
@@ -101,48 +115,56 @@
 		percentage: number;
 	}
 
-	let progressStatesByFunc = $state<Record<number, Record<string, ProgressState>>>({});
+	// Memoized progress calculation for better performance
+	const progressStatesByFunc = $derived.by(() => {
+		const progressMap: Record<number, Record<string, ProgressState>> = {};
 
-	function updateProgressState(accumulatedLog: typeof progressStatesByFunc, log: FunctionLog) {
-		if (log.type !== 'PROGRESS') return accumulatedLog;
+		logs.forEach((log) => {
+			if (log.type === 'PROGRESS') {
+				let data: ProgressData;
 
-		try {
-			const data = typeof log.message === 'string' ? JSON.parse(log.message) : log.message;
+				// Handle both string and object message types
+				if (typeof log.message === 'string') {
+					try {
+						data = JSON.parse(log.message);
+					} catch (e) {
+						return; // Skip if not valid JSON
+					}
+				} else {
+					data = log.message as ProgressData;
+				}
 
-			const { percentage, completed } = calculateProgressStats(data.value, data.max);
-			const progId = data?.progress_id ?? data?.['prog_id'] ?? '';
-			accumulatedLog = {
-				...accumulatedLog,
-				[log.funcId]: {
-					...accumulatedLog[log.funcId],
-					[progId]: {
+				const progId = data?.progress_id ?? (data as any)?.['prog_id'] ?? '';
+
+				if (!progressMap[log.funcId]) {
+					progressMap[log.funcId] = {};
+				}
+
+				const existing = progressMap[log.funcId][progId];
+				const { percentage, completed } = calculateProgressStats(data.value, data.max);
+
+				// Only update if this is newer data
+				if (!existing || new Date(log.rowDate) > existing.lastUpdated) {
+					progressMap[log.funcId][progId] = {
 						progId,
-						title: accumulatedLog?.[log.funcId]?.[progId]?.title ?? data.title,
-						description: accumulatedLog?.[log.funcId]?.[progId]?.description ?? data.description,
+						title: existing?.title ?? data.title,
+						description: existing?.description ?? data.description,
 						value: data.value,
-						max: accumulatedLog?.[log.funcId]?.[progId]?.max ?? data.max,
-						duration:
-							(new Date(log.rowDate).getTime() -
-								new Date(
-									accumulatedLog?.[log.funcId]?.[progId]?.startDate ?? log.rowDate ?? new Date()
-								).getTime()) /
-							1000,
-						startDate: new Date(accumulatedLog?.[log.funcId]?.[progId]?.startDate ?? log.rowDate),
-						lastUpdated: new Date(
-							accumulatedLog?.[log.funcId]?.[progId]?.lastUpdated ?? log.rowDate
-						),
+						max: existing?.max ?? data.max,
+						duration: existing
+							? (new Date(log.rowDate).getTime() - existing.startDate.getTime()) / 1000
+							: undefined,
+						startDate: existing?.startDate ?? new Date(log.rowDate),
+						lastUpdated: new Date(log.rowDate),
 						completed,
 						percentage
-					}
+					};
 				}
-			};
+			}
+		});
 
-			return accumulatedLog;
-		} catch (e) {
-			console.error('Failed to update progress state:', e);
-		}
-		return accumulatedLog;
-	}
+		return progressMap;
+	});
 
 	let currentTime = $state(new Date());
 
@@ -152,13 +174,7 @@
 		}, 1000);
 	});
 
-	// Update progress state when new logs come in
-	$effect(() => {
-		progressStatesByFunc = logs.reduce(updateProgressState, {} as typeof progressStatesByFunc);
-	});
-
 	let logsContainer = $state<HTMLDivElement | null>(null);
-	let intervalId = $state<NodeJS.Timeout | undefined>(undefined);
 
 	// Initialize logs and set initial lastLogDate
 	if (initialLogs) {
@@ -193,9 +209,9 @@
 		// Check if function is finished first
 		const isFinished = await checkFunctionStatus();
 		if (isFinished) {
-			if (intervalId) {
-				clearInterval(intervalId);
-				intervalId = undefined;
+			if (pollingIntervalId) {
+				clearInterval(pollingIntervalId);
+				pollingIntervalId = undefined;
 			}
 			return;
 		}
@@ -216,11 +232,35 @@
 			if (newLogs?.length > 0) {
 				lastLogDate = newLogs[newLogs.length - 1].rowDate;
 				logs = [...logs, ...newLogs];
+				consecutiveEmptyFetches = 0;
+
+				// Reset to normal polling interval
+				if (currentPollingInterval !== pollingInterval) {
+					currentPollingInterval = pollingInterval || 2000;
+					resetPolling();
+				}
+			} else {
+				consecutiveEmptyFetches++;
+
+				// Gradually increase polling interval if no new logs
+				if (consecutiveEmptyFetches > 5 && currentPollingInterval < 10000) {
+					currentPollingInterval = Math.min(currentPollingInterval * 1.5, 10000);
+					resetPolling();
+				}
 			}
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to fetch logs';
 		} finally {
 			loading = false;
+		}
+	}
+
+	function resetPolling() {
+		if (pollingIntervalId) {
+			clearInterval(pollingIntervalId);
+		}
+		if (!funcFinished) {
+			pollingIntervalId = setInterval(fetchLogs, currentPollingInterval);
 		}
 	}
 
@@ -264,12 +304,12 @@
 
 		// Setup polling if not finished
 		if (pollingInterval && !funcFinished) {
-			intervalId = setInterval(fetchLogs, pollingInterval);
+			pollingIntervalId = setInterval(fetchLogs, currentPollingInterval);
 		}
 
 		return () => {
-			if (intervalId) {
-				clearInterval(intervalId);
+			if (pollingIntervalId) {
+				clearInterval(pollingIntervalId);
 			}
 		};
 	});
@@ -426,160 +466,29 @@
 	{/if}
 
 	<!-- Logs Container -->
-	<div class="max-h-[600px] space-y-4 overflow-y-auto pr-2" bind:this={logsContainer}>
-		{#if loading && !logs?.length}
-			<div class="flex justify-center p-8">
-				<span class="loading loading-spinner loading-lg"></span>
+	{#if loading && !logs?.length}
+		<LogsSkeleton />
+	{:else if error}
+		<ErrorBoundary {error} onRetry={fetchLogs} context="logs" />
+	{:else if logs?.length === 0}
+		<div class="p-8 text-center text-base-content/60">
+			<div class="space-y-2">
+				<p>No logs found for this function</p>
+				<p class="text-sm">Logs will appear here as the function executes</p>
 			</div>
-		{:else if error}
-			<div class="alert alert-error">
-				<span>{error}</span>
-				<button class="btn btn-sm" onclick={fetchLogs}>Retry</button>
+		</div>
+	{:else if filteredLogs.length === 0}
+		<div class="p-8 text-center text-base-content/60">
+			<div class="space-y-2">
+				<p>No logs match your current filters</p>
+				<p class="text-sm">Try adjusting your search criteria or clearing filters</p>
+				<button class="btn btn-outline btn-sm" onclick={clearAllFilters}>
+					Clear All Filters
+				</button>
 			</div>
-		{:else if logs?.length === 0}
-			<div class="p-8 text-center text-base-content/60">
-				<div class="space-y-2">
-					<p>No logs found for this function</p>
-					<p class="text-sm">Logs will appear here as the function executes</p>
-				</div>
-			</div>
-		{:else if filteredLogs.length === 0}
-			<div class="p-8 text-center text-base-content/60">
-				<div class="space-y-2">
-					<p>No logs match your current filters</p>
-					<p class="text-sm">Try adjusting your search criteria or clearing filters</p>
-					<button
-						class="btn btn-outline btn-sm"
-						onclick={() => {
-							searchQuery = '';
-							selectedLogTypes = new Set(logTypes);
-							timeRangeStart = '';
-							timeRangeEnd = '';
-						}}>Clear All Filters</button
-					>
-				</div>
-			</div>
-		{:else}
-			<!-- Progress Bars Section -->
-			{#each Object.entries(progressStatesByFunc) as [funcId, progressStates]}
-				{#if Object.keys(progressStates)?.length > 0}
-					<div class="mb-6 space-y-4 rounded-lg bg-base-200 p-4">
-						{#if parseInt(funcId) !== func.funcId}
-							<div class="mb-2">
-								<span class="badge badge-ghost gap-1">
-									{logs?.find((l) => l.funcId === parseInt(funcId))?.function?.funcName}
-								</span>
-							</div>
-						{/if}
-						{#each Object.entries(progressStates) as [progId, progress]}
-							<div class="card bg-base-100 p-4">
-								<div class="space-y-2">
-									<div class="flex items-center justify-between">
-										<div>
-											<div class="font-medium">{progress.title || progress.description}</div>
-										</div>
-										<div class="text-sm font-medium">
-											{#if !progress.completed && !func.finished}
-												<div class="text-sm text-base-content/60">
-													{Math.ceil((currentTime.getTime() - progress.startDate.getTime()) / 1000)}
-													seconds
-												</div>
-											{:else}
-												<div class="text-sm text-base-content/60">
-													{Math.ceil(progress.duration ?? 0)} seconds
-												</div>
-											{/if}
-											<div class="text-sm text-base-content/60">
-												{Math.round(progress.percentage)}% ({progress.value} / {progress.max})
-											</div>
-										</div>
-									</div>
-									<div class="w-full">
-										<progress
-											class="progress w-full"
-											class:progress-primary={!progress.completed}
-											class:progress-success={progress.completed}
-											value={progress.value}
-											max={progress.max}
-										></progress>
-									</div>
-								</div>
-							</div>
-						{/each}
-					</div>
-				{/if}
-			{/each}
-
-			<!-- Logs Section -->
-			<div class="space-y-4">
-				{#each filteredLogs as log}
-					{@const type = log.type?.toUpperCase()}
-					{#if !['PROGRESS', 'CALLBACK', 'HTML'].includes(type)}
-						<div
-							class="card border-l-4 bg-base-100 transition-all hover:translate-x-1"
-							class:border-info={type === 'INFO'}
-							class:border-success={type === 'SUCCESS' || type === 'FINAL'}
-							class:border-warning={type === 'WARNING'}
-							class:border-error={type === 'ERROR'}
-							class:border-primary={!['INFO', 'SUCCESS', 'WARNING', 'ERROR', 'FINAL'].includes(
-								type
-							)}
-							class:ml-8={log.funcId !== func.funcId}
-						>
-							<div class="card-body p-4">
-								<div class="flex items-center gap-4">
-									<!-- Function Name (for child functions) -->
-									{#if log.funcId !== func.funcId}
-										<span class="badge badge-ghost gap-1">
-											{log.function?.funcName}
-										</span>
-									{/if}
-
-									<!-- Timestamp -->
-									<span class="font-mono text-sm text-base-content/60">
-										{new Date(log.rowDate).toLocaleString()}
-									</span>
-
-									<!-- Log Type Badge -->
-									<span
-										class="badge gap-1"
-										class:badge-info={type === 'INFO'}
-										class:badge-success={type === 'SUCCESS' || type === 'FINAL'}
-										class:badge-warning={type === 'WARNING'}
-										class:badge-error={type === 'ERROR'}
-										class:badge-primary={!['INFO', 'SUCCESS', 'WARNING', 'ERROR', 'FINAL'].includes(
-											type
-										)}
-									>
-										{type}
-									</span>
-								</div>
-
-								<!-- Message -->
-								<div class="mt-2 whitespace-pre-wrap font-mono text-sm">
-									{@html highlightText(
-										typeof log.message === 'string' ? log.message : '',
-										searchQuery
-									)}
-								</div>
-
-								<!-- Traceback if exists -->
-								{#if log.traceBack}
-									<div class="mt-4">
-										<div class="collapse bg-base-200">
-											<input type="checkbox" />
-											<div class="collapse-title font-medium">Show Traceback</div>
-											<div class="collapse-content">
-												<pre class="whitespace-pre-wrap text-sm">{log.traceBack}</pre>
-											</div>
-										</div>
-									</div>
-								{/if}
-							</div>
-						</div>
-					{/if}
-				{/each}
-			</div>
-		{/if}
-	</div>
+		</div>
+	{:else}
+		<!-- Virtual Logs List with inline progress bars -->
+		<VirtualLogList logs={filteredLogs} itemHeight={80} containerHeight={600} {searchQuery} />
+	{/if}
 </div>

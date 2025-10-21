@@ -1,0 +1,1 @@
+DROP INDEX "idx_function_logs_message";
