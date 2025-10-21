@@ -89,5 +89,11 @@
 		</div>
 	</div>
 
-	<FunctionLogs {func} initialLogs={logs} isFinished={func.finished} />
+	<FunctionLogs
+		{func}
+		initialLogs={logs}
+		isFinished={func.finished}
+		enableExport={true}
+		showFilters={false}
+	/>
 </div>

@@ -20,7 +20,10 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 			throw error(404, 'Function not found');
 		}
 
-		const logs = fetch(`/api/functions/${func.funcId}/logs`).then((response) => response.json());
+		const logs = fetch(`/api/functions/${func.funcId}/logs`).then(async (response) => {
+			const data = await response.json();
+			return data.logs;
+		});
 
 		return {
 			function: func,

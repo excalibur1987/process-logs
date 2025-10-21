@@ -69,7 +69,10 @@ export async function GET({ params }) {
 			function: functionInfoMap[log.funcId]
 		}));
 
-		return json(enhancedLogs);
+		return json({
+			logs: enhancedLogs,
+			function: func
+		});
 	} catch (error) {
 		console.error('Error fetching logs:', error);
 		return new Response('Internal server error', { status: 500 });

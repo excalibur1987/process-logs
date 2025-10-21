@@ -171,6 +171,12 @@
 			<h2 class="text-2xl font-bold">Function Logs</h2>
 			<a href="/functions/{func.funcId}/logs" class="btn btn-outline"> View Full Logs </a>
 		</div>
-		<FunctionLogs {func} initialLogs={logs} showHeader={false} isFinished={func.finished} />
+		<FunctionLogs
+			{func}
+			initialLogs={logs}
+			showHeader={false}
+			isFinished={func.finished}
+			showFilters={false}
+		/>
 	</div>
 </div>

@@ -14,6 +14,7 @@
 - **func_slug**: text, not null
 
 Relations:
+
 - `function_progress.func_header_id` → `function_headers.id`
 
 ### `function_progress`
@@ -30,6 +31,7 @@ Relations:
 - **func_header_id**: integer, not null (FK → `function_headers.id`)
 
 Relations:
+
 - `parent_id` → `function_progress.func_id` (self-relation)
 - `func_header_id` → `function_headers.id`
 - One-to-many with `function_logs`
@@ -44,6 +46,7 @@ Relations:
 - **trace_back**: text, nullable
 
 Relations:
+
 - Many-to-one with `function_progress` via `func_id`
 
 ### `function_progress_tracking`
@@ -60,11 +63,13 @@ Relations:
 - **completed**: boolean, not null, default false
 
 Relations:
+
 - Many-to-one with `function_progress` via `func_id`
 
 ## API Endpoints
 
 Notes:
+
 - All endpoints are under `/api/functions/...`.
 - Path parameters are denoted in brackets.
 - Unless specified otherwise, timestamps are ISO 8601 strings.
@@ -74,6 +79,7 @@ Notes:
 List function runs with pagination and summary.
 
 Query params:
+
 - **funcName**: string (ilike filter against `function_headers.func_name`)
 - **slug**: string (ilike filter against `function_progress.slug`)
 - **startDate**: date/time string (inclusive)
@@ -83,6 +89,7 @@ Query params:
 - **limit**: number, default 10
 
 Response:
+
 ```json
 {
   "summary": {
@@ -116,20 +123,20 @@ Response:
 Create a new function run and optionally attach initial logs.
 
 Request body:
+
 ```json
 {
-  "funcName": "string",        // matches function_headers.func_slug
-  "parentId": 123,              // optional linkage to parent run
-  "slug": "string",            // run slug
-  "args": {},                   // arbitrary JSON
-  "source": "string",
-  "logs": [
-    { "type": "string", "message": "string", "traceBack": "string|null" }
-  ]
+	"funcName": "string", // matches function_headers.func_slug
+	"parentId": 123, // optional linkage to parent run
+	"slug": "string", // run slug
+	"args": {}, // arbitrary JSON
+	"source": "string",
+	"logs": [{ "type": "string", "message": "string", "traceBack": "string|null" }]
 }
 ```
 
 Response:
+
 ```json
 { "funcId": number }
 ```
@@ -141,11 +148,13 @@ Errors: 400 `{ error: string }`
 Paginated list of function headers.
 
 Query params:
+
 - **search**: string (ilike against `func_name`)
 - **page**: number, default 1
 - **limit**: number, default 10
 
 Response:
+
 ```json
 {
   "functions": [ { "id": number, "funcName": "string", "funcSlug": "string" } ],
@@ -158,9 +167,11 @@ Response:
 Initialize (insert) a function header if missing and create a new run.
 
 Path params:
+
 - **funcName**: string (slug in URL; header name is derived via sentence-case; slug stored via `slugify`)
 
 Request body:
+
 ```json
 {
   "funcSlug": "string",
@@ -171,6 +182,7 @@ Request body:
 ```
 
 Response:
+
 ```json
 { "funcId": number }
 ```
@@ -182,13 +194,16 @@ Errors: 400 `{ error: string }`
 Get a run by numeric ID or slug and return its logs (optionally since a timestamp).
 
 Path params:
+
 - **funcName**: string (not used for lookup; contextual)
 - **funcId**: string (numeric ID or slug)
 
 Query params:
+
 - **lastLogDate**: ISO datetime string; if provided, only logs after this date are returned
 
 Response:
+
 ```json
 {
   "function": { /* FunctionInstance */ },
@@ -205,6 +220,7 @@ Errors: 404 text, 500 `{ error: string }`
 Update run status.
 
 Request body:
+
 ```json
 { "finished": true, "success": true, "endDate": "2024-01-01T00:00:00Z" }
 ```
@@ -218,12 +234,13 @@ Errors: 400 `{ error: string }`
 Append a log entry to a run (ID or slug).
 
 Request body:
+
 ```json
 {
-  "type": "string",                  // e.g. "info" | "error" | "progress"
-  "message": "string | object",      // objects are stringified; for type === "progress" body is normalized to JSON string
-  "traceBack": "string|null",
-  "rowDate": "2024-01-01T00:00:00Z"   // optional; defaults to now
+	"type": "string", // e.g. "info" | "error" | "progress"
+	"message": "string | object", // objects are stringified; for type === "progress" body is normalized to JSON string
+	"traceBack": "string|null",
+	"rowDate": "2024-01-01T00:00:00Z" // optional; defaults to now
 }
 ```
 
@@ -236,11 +253,13 @@ Errors: 400 `{ error: string }`
 Mark a run as finished. If the run has children, success is set to true only if all children are finished and successful.
 
 Request body:
+
 ```json
 { "success": true }
 ```
 
 Response:
+
 ```json
 {
   "success": boolean,                  // final status after children check
@@ -261,9 +280,11 @@ Errors: 400 `{ error: string }`, 404 text
 Get logs for a single run (ID or slug).
 
 Query params:
+
 - **lastLogDate**: ISO datetime string; if provided, only logs after this date are returned
 
 Response:
+
 ```json
 {
   "function": { /* FunctionInstance */ },
@@ -310,9 +331,11 @@ Errors: 500 text
 Get progress tracking records for a run (ID or slug).
 
 Query params:
+
 - **progressId**: string; optional filter by `prog_id`
 
 Response:
+
 ```json
 {
   "success": true,
@@ -342,5 +365,3 @@ Errors: 500 text
 - Many endpoints accept either a numeric `funcId` or a slug; the handlers detect type and route accordingly.
 - For performance-sensitive listings, pagination is implemented via `limit` and `offset`.
 - Log entries of type `progress` normalize `message` to a JSON string.
-
-

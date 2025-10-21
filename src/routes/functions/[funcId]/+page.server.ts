@@ -42,7 +42,10 @@ export const load: PageServerLoad = async ({ params, fetch, url }) => {
 			.where(eq(functionProgress.parentId, func.funcId));
 
 		// Get logs
-		const logs = fetch(`/api/functions/${func.funcId}/logs`).then((response) => response.json());
+		const logs = fetch(`/api/functions/${func.funcId}/logs`).then(async (response) => {
+			const data = await response.json();
+			return data.logs;
+		});
 
 		return {
 			function: func,

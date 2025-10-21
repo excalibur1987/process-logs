@@ -11,6 +11,8 @@ export const load: PageServerLoad = async ({ url }) => {
 	const endDate = url.searchParams.get('endDate');
 	const status = url.searchParams.get('status') || 'all';
 	const parentOnly = url.searchParams.get('parentOnly') === 'true';
+	const minDuration = url.searchParams.get('minDuration');
+	const maxDuration = url.searchParams.get('maxDuration');
 	const page = parseInt(url.searchParams.get('page') || '1');
 	const limit = parseInt(url.searchParams.get('limit') || '10');
 	const offset = (page - 1) * limit;
@@ -59,6 +61,18 @@ export const load: PageServerLoad = async ({ url }) => {
 		filters.push(isNull(functionProgress.parentId));
 	}
 
+	// Add duration filters
+	if (minDuration || maxDuration) {
+		const durationFilter = sql`EXTRACT(EPOCH FROM (${functionProgress.endDate} - ${functionProgress.startDate}))`;
+
+		if (minDuration) {
+			filters.push(sql`${durationFilter} >= ${parseInt(minDuration)}`);
+		}
+		if (maxDuration) {
+			filters.push(sql`${durationFilter} <= ${parseInt(maxDuration)}`);
+		}
+	}
+
 	// Get total count
 	const totalCount = await db
 		.select({ count: sql<number>`count(*)`.mapWith(Number) })
@@ -90,6 +104,15 @@ export const load: PageServerLoad = async ({ url }) => {
 		.limit(limit)
 		.offset(offset);
 
+	// Get available sources
+	const sources = await db
+		.selectDistinct({
+			source: functionProgress.source
+		})
+		.from(functionProgress)
+		.where(sql`${functionProgress.source} != ''`)
+		.orderBy(functionProgress.source);
+
 	return {
 		results,
 		pagination: {
@@ -101,7 +124,8 @@ export const load: PageServerLoad = async ({ url }) => {
 		defaultDates: {
 			startDate: effectiveStartDate,
 			endDate: effectiveEndDate
-		}
+		},
+		sources: sources.map((s) => s.source)
 	};
 };
 
@@ -113,6 +137,9 @@ export const actions = {
 		const endDate = formData.get('endDate')?.toString();
 		const status = formData.get('status')?.toString() || 'all';
 		const parentOnly = formData.get('parentOnly') === 'true';
+		const minDuration = formData.get('minDuration')?.toString();
+		const maxDuration = formData.get('maxDuration')?.toString();
+		const sources = formData.getAll('sources[]').map((s) => s.toString());
 		const page = parseInt(formData.get('page')?.toString() || '1');
 		const limit = parseInt(formData.get('limit')?.toString() || '10');
 		const offset = (page - 1) * limit;
@@ -149,6 +176,23 @@ export const actions = {
 		// Add parent-only filter if enabled
 		if (parentOnly) {
 			filters.push(isNull(functionProgress.parentId));
+		}
+
+		// Add duration filters
+		if (minDuration || maxDuration) {
+			const durationFilter = sql`EXTRACT(EPOCH FROM (${functionProgress.endDate} - ${functionProgress.startDate}))`;
+
+			if (minDuration) {
+				filters.push(sql`${durationFilter} >= ${parseInt(minDuration)}`);
+			}
+			if (maxDuration) {
+				filters.push(sql`${durationFilter} <= ${parseInt(maxDuration)}`);
+			}
+		}
+
+		// Add source filter
+		if (sources.length > 0) {
+			filters.push(inArray(functionProgress.source, sources));
 		}
 
 		// Get total count
