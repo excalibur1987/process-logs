@@ -11,7 +11,12 @@
 		"lint": "prettier --check . && eslint .",
 		"format": "prettier --write .",
 		"format:staged": "prettier --write --ignore-path .gitignore $(git diff --cached --name-only --diff-filter=d | grep -E '\\.(ts|svelte)$')",
-		"format:push": "prettier --write --ignore-path .gitignore $(git diff --diff-filter=d --name-only origin/master..HEAD | grep -E '\\.(ts|svelte)$')"
+		"format:push": "prettier --write --ignore-path .gitignore $(git diff --diff-filter=d --name-only origin/master..HEAD | grep -E '\\.(ts|svelte)$')",
+		"db:generate": "drizzle-kit generate",
+		"db:migrate": "drizzle-kit migrate",
+		"db:studio": "drizzle-kit studio",
+		"db:push": "drizzle-kit push",
+		"db:pull": "drizzle-kit pull && bun run format"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^3.3.1",
