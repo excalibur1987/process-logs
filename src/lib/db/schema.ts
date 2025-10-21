@@ -1,6 +1,7 @@
 import {
 	boolean,
 	foreignKey,
+	index,
 	integer,
 	json,
 	numeric,
@@ -29,7 +30,10 @@ export const functionLogs = pgTable(
 			columns: [table.funcId],
 			foreignColumns: [functionProgress.funcId],
 			name: 'fk_function_logs_func_id_function_progress'
-		})
+		}),
+		index('idx_function_logs_type').on(table.type),
+		index('idx_function_logs_message').on(table.message),
+		index('idx_function_logs_func_id_row_date').on(table.funcId, table.rowDate)
 	]
 );
 
@@ -60,7 +64,13 @@ export const functionProgress = pgTable(
 			columns: [table.funcHeaderId],
 			foreignColumns: [functionHeaders.id],
 			name: 'function_progress_function_headers_fk'
-		})
+		}),
+		index('idx_function_progress_source').on(table.source),
+		index('idx_function_progress_start_date_finished_success').on(
+			table.startDate,
+			table.finished,
+			table.success
+		)
 	]
 );
 
@@ -95,3 +105,15 @@ export const functionProgressTracking = pgTable(
 		})
 	]
 );
+
+export const savedSearches = pgTable('saved_searches', {
+	id: serial().primaryKey().notNull(),
+	name: varchar('name', { length: 200 }).notNull(),
+	filters: json().notNull(),
+	createdAt: timestamp('created_at', {
+		withTimezone: true,
+		mode: 'string'
+	})
+		.notNull()
+		.defaultNow()
+});
