@@ -16,7 +16,12 @@ export type FunctionInstance = {
 	args: any;
 };
 
-export async function getFunctionInstanceBySlug(slug: string): Promise<FunctionInstance> {
+export async function getFunctionInstanceBySlug(funcSlug: string): Promise<FunctionInstance> {
+	const [{ funcId }] = await db
+		.select({ funcId: functionProgress.funcId })
+		.from(functionProgress)
+		.where(eq(functionProgress.slug, funcSlug))
+		.execute();
 	const funcQuery = db
 		.select({
 			funcId: functionProgress.funcId,
@@ -33,12 +38,12 @@ export async function getFunctionInstanceBySlug(slug: string): Promise<FunctionI
 		})
 		.from(functionProgress)
 		.innerJoin(functionHeaders, eq(functionProgress.funcHeaderId, functionHeaders.id))
-		.where(eq(functionProgress.slug, slug));
+		.where(eq(functionProgress.funcId, funcId));
 	const [func] = await funcQuery.execute();
 	return func;
 }
 
-export async function getFunctionInstanceById(id: number): Promise<FunctionInstance> {
+export async function getFunctionInstanceById(funcId: number): Promise<FunctionInstance> {
 	const funcQuery = db
 		.select({
 			funcId: functionProgress.funcId,
@@ -55,7 +60,7 @@ export async function getFunctionInstanceById(id: number): Promise<FunctionInsta
 		})
 		.from(functionProgress)
 		.innerJoin(functionHeaders, eq(functionProgress.funcHeaderId, functionHeaders.id))
-		.where(eq(functionProgress.funcId, id));
+		.where(eq(functionProgress.funcId, funcId));
 	const [func] = await funcQuery.execute();
 	return func;
 }

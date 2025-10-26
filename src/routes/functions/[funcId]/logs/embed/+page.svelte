@@ -63,6 +63,8 @@
 			showHeader={false}
 			isFinished={func.finished}
 			pollingInterval={10000}
+			enableExport={false}
+			showFilters={false}
 		/>
 	{/if}
 </div>
