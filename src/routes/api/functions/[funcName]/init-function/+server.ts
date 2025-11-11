@@ -5,7 +5,7 @@ import { getFunctionInstanceById, getFunctionInstanceBySlug } from '$lib/db/util
 import { validateWithContext } from '$lib/utils/zod-error';
 import { json } from '@sveltejs/kit';
 import * as changeCase from 'change-case';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 const requestSchema = z.object({
@@ -38,7 +38,7 @@ export async function POST({ params, request }) {
 		if (!funcHeader) {
 			await db.insert(functionHeaders).values({
 				funcName: changeCase.sentenceCase(params.funcName),
-				funcSlug: sql<string>`slugify(${params.funcName})`
+				funcSlug: changeCase.kebabCase(params.funcName)
 			});
 			[funcHeader] = await db
 				.select()

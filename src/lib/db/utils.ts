@@ -16,12 +16,17 @@ export type FunctionInstance = {
 	args: any;
 };
 
-export async function getFunctionInstanceBySlug(funcSlug: string): Promise<FunctionInstance> {
-	const [{ funcId }] = await db
+export async function getFunctionInstanceBySlug(
+	funcSlug: string
+): Promise<FunctionInstance | null> {
+	const result = await db
 		.select({ funcId: functionProgress.funcId })
 		.from(functionProgress)
 		.where(eq(functionProgress.slug, funcSlug))
 		.execute();
+	if (result.length === 0) {
+		return null;
+	}
 	const funcQuery = db
 		.select({
 			funcId: functionProgress.funcId,
@@ -38,12 +43,12 @@ export async function getFunctionInstanceBySlug(funcSlug: string): Promise<Funct
 		})
 		.from(functionProgress)
 		.innerJoin(functionHeaders, eq(functionProgress.funcHeaderId, functionHeaders.id))
-		.where(eq(functionProgress.funcId, funcId));
+		.where(eq(functionProgress.funcId, result[0]?.funcId));
 	const [func] = await funcQuery.execute();
 	return func;
 }
 
-export async function getFunctionInstanceById(funcId: number): Promise<FunctionInstance> {
+export async function getFunctionInstanceById(funcId: number): Promise<FunctionInstance | null> {
 	const funcQuery = db
 		.select({
 			funcId: functionProgress.funcId,

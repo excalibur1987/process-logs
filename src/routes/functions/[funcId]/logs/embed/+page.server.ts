@@ -10,7 +10,7 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 	try {
 		// Get function details with header information
 
-		let func: FunctionInstance;
+		let func: FunctionInstance | null = null;
 
 		if (parseInt(params.funcId).toString().length !== params.funcId.length) {
 			func = await getFunctionInstanceBySlug(params.funcId);

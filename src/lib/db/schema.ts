@@ -85,7 +85,7 @@ export const functionHeaders = pgTable(
 	'function_headers',
 	{
 		id: serial().primaryKey().notNull(),
-		funcName: varchar('func_name', { length: 200 }).notNull(),
+		funcName: text('func_name').notNull(),
 		funcSlug: text('func_slug').notNull()
 	},
 	(table) => [

@@ -2,6 +2,7 @@ import { db } from '$lib/db';
 import { functionHeaders, functionProgress } from '$lib/db/schema';
 import { validateWithContext } from '$lib/utils/zod-error';
 import { json } from '@sveltejs/kit';
+import * as changeCase from 'change-case';
 import { and, eq, gte, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
@@ -30,7 +31,7 @@ export async function GET({ params, request }) {
 		const [funcHeader] = await db
 			.select()
 			.from(functionHeaders)
-			.where(eq(sql<string>`slugify(${functionHeaders.funcName})`, funcName));
+			.where(eq(functionHeaders.funcSlug, changeCase.kebabCase(funcName)));
 		if (!funcHeader) {
 			return json({ error: 'Function not found' }, { status: 404 });
 		}
