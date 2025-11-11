@@ -19,7 +19,7 @@ const requestSchema = z.object({
 			if (typeof data === 'string') return JSON.parse(data);
 			return data;
 		}),
-	source: z.string()
+	source: z.string().optional()
 });
 
 export async function POST({ params, request }) {

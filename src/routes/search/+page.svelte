@@ -27,10 +27,8 @@
 	let searchError = $state<string | null>(null);
 	const limit = 10;
 
-	const url = $derived.by(() => new URL(page.url));
-
 	// Function to update URL parameters using SvelteKit's goto
-	function updateURL() {
+	function refreshPageData() {
 		if (!browser) return;
 
 		const searchParams = new URLSearchParams();
@@ -107,18 +105,7 @@
 
 	function handlePageChange(newPage: number) {
 		currentPage = newPage;
-		updateURL();
-		// Trigger search with new page
-		const form = document.querySelector('form[action="?/search"]') as HTMLFormElement;
-		if (form) {
-			// Update the hidden page input
-			const pageInput = form.querySelector('input[name="page"]') as HTMLInputElement;
-			if (pageInput) {
-				pageInput.value = newPage.toString();
-			}
-			// Submit the form
-			form.requestSubmit();
-		}
+		refreshPageData();
 	}
 
 	function handleDateChange(event: Event, field: 'startDate' | 'endDate') {
@@ -128,17 +115,17 @@
 		} else {
 			endDate = value;
 		}
-		updateURL();
+		refreshPageData();
 	}
 
 	function handleStatusChange(event: Event) {
 		status = (event.target as HTMLSelectElement).value;
-		updateURL();
+		refreshPageData();
 	}
 
 	function handleParentOnlyChange(event: Event) {
 		parentOnly = (event.target as HTMLInputElement).checked;
-		updateURL();
+		refreshPageData();
 	}
 
 	function handleDurationChange(event: Event, field: 'minDuration' | 'maxDuration') {
@@ -148,7 +135,7 @@
 		} else {
 			maxDuration = value;
 		}
-		updateURL();
+		refreshPageData();
 	}
 
 	let pagination = $derived(form?.pagination || data.pagination);
@@ -465,7 +452,7 @@
 							class="btn btn-ghost btn-xs"
 							onclick={() => {
 								selectedFunction = undefined;
-								updateURL();
+								refreshPageData();
 							}}>×</button
 						>
 					</div>
@@ -478,7 +465,7 @@
 							class="btn btn-ghost btn-xs"
 							onclick={() => {
 								status = 'all';
-								updateURL();
+								refreshPageData();
 							}}>×</button
 						>
 					</div>
@@ -491,7 +478,7 @@
 							class="btn btn-ghost btn-xs"
 							onclick={() => {
 								parentOnly = false;
-								updateURL();
+								refreshPageData();
 							}}>×</button
 						>
 					</div>
@@ -504,7 +491,7 @@
 							class="btn btn-ghost btn-xs"
 							onclick={() => {
 								minDuration = '';
-								updateURL();
+								refreshPageData();
 							}}>×</button
 						>
 					</div>
@@ -517,7 +504,7 @@
 							class="btn btn-ghost btn-xs"
 							onclick={() => {
 								maxDuration = '';
-								updateURL();
+								refreshPageData();
 							}}>×</button
 						>
 					</div>
@@ -530,7 +517,7 @@
 							class="btn btn-ghost btn-xs"
 							onclick={() => {
 								selectedSources = selectedSources.filter((s) => s !== source);
-								updateURL();
+								refreshPageData();
 							}}>×</button
 						>
 					</div>
@@ -545,7 +532,7 @@
 						minDuration = '';
 						maxDuration = '';
 						selectedSources = [];
-						updateURL();
+						refreshPageData();
 					}}>Clear All</button
 				>
 			</div>
