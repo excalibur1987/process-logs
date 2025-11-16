@@ -10,7 +10,7 @@ import { z } from 'zod';
 export async function GET({ params, url }) {
 	try {
 		// Get function details
-		let func: FunctionInstance;
+		let func: FunctionInstance | null;
 		const funcId = params.funcId;
 
 		if (parseInt(funcId).toString().length !== funcId.length) {

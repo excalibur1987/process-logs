@@ -43,11 +43,12 @@
 
 				if (progId) {
 					// Store the latest progress data for this ID
+					const savedProgress = progressMap.get(progId);
 					progressMap.set(progId, {
 						data: {
 							progId,
-							title: data.title,
-							description: data.description,
+							title: savedProgress?.data?.title ?? data?.title,
+							description: savedProgress?.data?.description ?? data.description,
 							value: data.value,
 							max: data.max,
 							percentage: calculateProgressStats(data.value, data.max).percentage,
