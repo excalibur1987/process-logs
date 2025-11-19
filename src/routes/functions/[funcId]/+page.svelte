@@ -19,6 +19,11 @@
 					<button class="btn btn-error btn-sm mt-2" type="submit"> Mark as Failed </button>
 				</form>
 			{/if}
+			{#if func.processId}
+				<form method="POST" action="?/killProcess">
+					<button class="btn btn-error btn-sm mt-2" type="submit"> Kill Process </button>
+				</form>
+			{/if}
 		</div>
 		<a href="/search" class="btn">Back to Search</a>
 	</div>

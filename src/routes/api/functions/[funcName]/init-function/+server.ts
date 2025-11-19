@@ -11,6 +11,7 @@ import { z } from 'zod';
 const requestSchema = z.object({
 	funcSlug: z.string(),
 	parentId: z.string().nullable().optional(),
+	processId: z.string().optional(),
 	args: z
 		.any()
 		.optional()
@@ -25,7 +26,7 @@ const requestSchema = z.object({
 export async function POST({ params, request }) {
 	try {
 		const reqJson = await request.json();
-		const { funcSlug, parentId, args, source } = validateWithContext(
+		const { funcSlug, parentId, args, source, processId } = validateWithContext(
 			requestSchema,
 			reqJson,
 			'POST /api/functions/[funcName]/init-function'
@@ -61,6 +62,7 @@ export async function POST({ params, request }) {
 			parentId: parentFunction?.funcId ?? null,
 			args: args,
 			source: source,
+			processId: processId || null,
 			startDate: new Date().toISOString(),
 			finished: false,
 			success: false
