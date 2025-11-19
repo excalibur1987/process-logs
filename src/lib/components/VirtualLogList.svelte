@@ -19,8 +19,9 @@
 
 	// Process logs and add progress bars inline
 	const processedLogs = $derived.by(() => {
-		const processed: Array<FunctionLog | { type: 'PROGRESS_BAR'; data: any; timestamp: string }> =
-			[];
+		const processed: Array<
+			FunctionLog | { type: 'PROGRESS_BAR'; data: any; timestamp: string; id: string }
+		> = [];
 		const progressMap = new Map<string, { data: any; timestamp: string; logIndex: number }>();
 
 		// First pass: collect all progress data and find the latest values for each progress ID
@@ -90,7 +91,8 @@
 						processed.push({
 							type: 'PROGRESS_BAR',
 							data: latestProgress.data,
-							timestamp: latestProgress.timestamp
+							timestamp: latestProgress.timestamp,
+							id: `progress-${progId}`
 						});
 					}
 				}
