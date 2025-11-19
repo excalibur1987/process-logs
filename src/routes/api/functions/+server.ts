@@ -14,7 +14,6 @@ export async function POST({ request }) {
 			parentId: z.number(),
 			slug: z.string(),
 			args: z.any(),
-			source: z.string(),
 			processId: z.string().optional(),
 			logs: z.array(
 				z.object({
@@ -30,7 +29,6 @@ export async function POST({ request }) {
 			parentId,
 			slug,
 			args,
-			source,
 			processId,
 			logs = []
 		} = validateWithContext(schema, data, 'POST /api/functions');
@@ -48,7 +46,6 @@ export async function POST({ request }) {
 				parentId,
 				slug,
 				args: JSON.stringify(args),
-				source,
 				startDate: new Date().toISOString(),
 				finished: false,
 				success: false,
@@ -120,7 +117,6 @@ export async function GET({ url }) {
 			endDate: functionProgress.endDate,
 			finished: functionProgress.finished,
 			success: functionProgress.success,
-			source: functionProgress.source,
 			args: functionProgress.args,
 			funcHeaderId: functionProgress.funcHeaderId,
 			funcName: functionHeaders.funcName,

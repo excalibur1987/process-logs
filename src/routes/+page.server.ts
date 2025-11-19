@@ -34,7 +34,6 @@ export const load: PageServerLoad = async () => {
 			endDate: functionProgress.endDate,
 			finished: functionProgress.finished,
 			success: functionProgress.success,
-			source: functionProgress.source,
 			args: functionProgress.args,
 			funcHeaderId: functionProgress.funcHeaderId,
 			funcName: functionHeaders.funcName,

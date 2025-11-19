@@ -58,7 +58,6 @@ export const load: PageServerLoad = async ({ params, fetch, url }) => {
 				endDate: functionProgress.endDate,
 				finished: functionProgress.finished,
 				success: functionProgress.success,
-				source: functionProgress.source,
 				processId: functionProgress.processId,
 				funcName: functionHeaders.funcName
 			})

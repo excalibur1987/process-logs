@@ -71,7 +71,6 @@
 						<th>Function Name</th>
 						<th>Start Date</th>
 						<th>Status</th>
-						<th>Source</th>
 						<th>Actions</th>
 					</tr>
 				</thead>
@@ -89,7 +88,6 @@
 									<span class="badge badge-error">Failed</span>
 								{/if}
 							</td>
-							<td>{func.source}</td>
 							<td>
 								<a
 									data-sveltekit-preload-data="off"

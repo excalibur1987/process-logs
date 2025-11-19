@@ -50,7 +50,6 @@ export const functionProgress = pgTable(
 		endDate: timestamp('end_date', { withTimezone: true, mode: 'string' }),
 		finished: boolean().notNull(),
 		success: boolean().notNull(),
-		source: varchar({ length: 20 }).notNull().default(''),
 		processId: text('process_id'),
 		args: json(),
 		funcHeaderId: integer('func_header_id').notNull()
@@ -66,7 +65,6 @@ export const functionProgress = pgTable(
 			foreignColumns: [functionHeaders.id],
 			name: 'function_progress_function_headers_fk'
 		}),
-		index('idx_function_progress_source').on(table.source),
 		index('idx_function_progress_start_date_finished_success').on(
 			table.startDate,
 			table.finished,

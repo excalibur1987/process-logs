@@ -58,9 +58,6 @@
 						{func.endDate ? new Date(func.endDate).toLocaleString() : '-'}
 					</div>
 
-					<div class="font-semibold">Source:</div>
-					<div>{func.source}</div>
-
 					{#if func.args}
 						<div class="font-semibold">Arguments:</div>
 						<div class="overflow-x-auto">

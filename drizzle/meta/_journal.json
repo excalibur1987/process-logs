@@ -36,6 +36,13 @@
       "when": 1763529440719,
       "tag": "0004_broad_ma_gnuci",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1763543280671,
+      "tag": "0005_neat_jack_power",
+      "breakpoints": true
     }
   ]
 }

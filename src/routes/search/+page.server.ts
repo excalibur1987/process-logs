@@ -83,7 +83,6 @@ export const load: PageServerLoad = async ({ url }) => {
 			endDate: functionProgress.endDate,
 			finished: functionProgress.finished,
 			success: functionProgress.success,
-			source: functionProgress.source,
 			args: functionProgress.args,
 			funcHeaderId: functionProgress.funcHeaderId,
 			funcName: functionHeaders.funcName,
@@ -101,22 +100,10 @@ export const load: PageServerLoad = async ({ url }) => {
 			.from(functionProgress)
 			.innerJoin(functionHeaders, eq(functionProgress.funcHeaderId, functionHeaders.id))
 			.where(and(...filters)),
-		baseQuery
-			.orderBy(desc(functionProgress.startDate))
-			.limit(limit)
-			.offset(offset)
+		baseQuery.orderBy(desc(functionProgress.startDate)).limit(limit).offset(offset)
 	]);
 
 	const totalCount = Number(countResult[0]?.count || 0);
-
-	// Get available sources
-	const sources = await db
-		.selectDistinct({
-			source: functionProgress.source
-		})
-		.from(functionProgress)
-		.where(sql`${functionProgress.source} != ''`)
-		.orderBy(functionProgress.source);
 
 	return {
 		results,
@@ -129,8 +116,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		defaultDates: {
 			startDate: effectiveStartDate,
 			endDate: effectiveEndDate
-		},
-		sources: sources.map((s) => s.source)
+		}
 	};
 };
 
@@ -144,7 +130,6 @@ export const actions = {
 		const parentOnly = formData.get('parentOnly') === 'true';
 		const minDuration = formData.get('minDuration')?.toString();
 		const maxDuration = formData.get('maxDuration')?.toString();
-		const sources = formData.getAll('sources[]').map((s) => s.toString());
 		const page = parseInt(formData.get('page')?.toString() || '1');
 		const limit = parseInt(formData.get('limit')?.toString() || '10');
 		const offset = (page - 1) * limit;
@@ -195,11 +180,6 @@ export const actions = {
 			}
 		}
 
-		// Add source filter
-		if (sources.length > 0) {
-			filters.push(inArray(functionProgress.source, sources));
-		}
-
 		// Optimize with parallel execution
 		const baseQuery = db
 			.select({
@@ -210,7 +190,6 @@ export const actions = {
 				endDate: functionProgress.endDate,
 				finished: functionProgress.finished,
 				success: functionProgress.success,
-				source: functionProgress.source,
 				args: functionProgress.args,
 				funcHeaderId: functionProgress.funcHeaderId,
 				funcName: functionHeaders.funcName,
@@ -228,10 +207,7 @@ export const actions = {
 				.from(functionProgress)
 				.innerJoin(functionHeaders, eq(functionProgress.funcHeaderId, functionHeaders.id))
 				.where(and(...filters)),
-			baseQuery
-				.orderBy(desc(functionProgress.startDate))
-				.limit(limit)
-				.offset(offset)
+			baseQuery.orderBy(desc(functionProgress.startDate)).limit(limit).offset(offset)
 		]);
 
 		const totalCount = Number(countResult[0]?.count || 0);

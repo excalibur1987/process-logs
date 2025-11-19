@@ -330,63 +330,6 @@
 			</div>
 		</div>
 
-		<!-- Source Filter -->
-		<div class="mb-8">
-			<div class="form-control">
-				<label class="label">
-					<span class="label-text">Sources</span>
-					<span class="label-text-alt">Select multiple sources</span>
-				</label>
-				<div class="dropdown dropdown-hover">
-					<button class="btn btn-outline w-full justify-start" tabindex="0">
-						{#if selectedSources.length === 0}
-							All Sources
-						{:else}
-							{selectedSources.length} source{selectedSources.length > 1 ? 's' : ''} selected
-						{/if}
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							class="ml-auto h-4 w-4"
-							viewBox="0 0 20 20"
-							fill="currentColor"
-						>
-							<path
-								fill-rule="evenodd"
-								d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-								clip-rule="evenodd"
-							/>
-						</svg>
-					</button>
-					<ul class="menu dropdown-content z-50 w-full rounded-box bg-base-100 p-2 shadow">
-						{#each data.sources as source}
-							<li>
-								<label class="label cursor-pointer">
-									<input
-										type="checkbox"
-										class="checkbox checkbox-sm"
-										checked={selectedSources.includes(source)}
-										onchange={(e) => {
-											const target = e.target as HTMLInputElement;
-											if (target.checked) {
-												selectedSources = [...selectedSources, source];
-											} else {
-												selectedSources = selectedSources.filter((s) => s !== source);
-											}
-											updateURL();
-										}}
-									/>
-									<span class="label-text ml-2">{source}</span>
-								</label>
-							</li>
-						{/each}
-					</ul>
-				</div>
-				{#each selectedSources as source}
-					<input type="hidden" name="sources[]" value={source} />
-				{/each}
-			</div>
-		</div>
-
 		<button
 			type="submit"
 			class="btn btn-primary relative z-10 mb-8 grid place-items-center"
@@ -567,7 +510,6 @@
 						<th>Start Date</th>
 						<th>End Date</th>
 						<th>Status</th>
-						<th>Source</th>
 						<th>Actions</th>
 					</tr>
 				</thead>
@@ -601,7 +543,6 @@
 										<span class="badge badge-error">Failed</span>
 									{/if}
 								</td>
-								<td>{func.source}</td>
 								<td>
 									<a href="/functions/{func.funcId}" class="btn btn-sm"> View Details </a>
 								</td>
