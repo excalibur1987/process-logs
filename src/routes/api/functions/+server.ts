@@ -15,6 +15,7 @@ export async function POST({ request }) {
 			slug: z.string(),
 			args: z.any(),
 			source: z.string(),
+			processId: z.string().optional(),
 			logs: z.array(
 				z.object({
 					type: z.string(),
@@ -30,6 +31,7 @@ export async function POST({ request }) {
 			slug,
 			args,
 			source,
+			processId,
 			logs = []
 		} = validateWithContext(schema, data, 'POST /api/functions');
 
@@ -49,7 +51,8 @@ export async function POST({ request }) {
 				source,
 				startDate: new Date().toISOString(),
 				finished: false,
-				success: false
+				success: false,
+				processId: processId || null
 			})
 			.returning();
 
