@@ -51,6 +51,7 @@ export const functionProgress = pgTable(
 		finished: boolean().notNull(),
 		success: boolean().notNull(),
 		source: varchar({ length: 20 }).notNull().default(''),
+		processId: text('process_id'),
 		args: json(),
 		funcHeaderId: integer('func_header_id').notNull()
 	},

@@ -12,6 +12,7 @@ export type FunctionInstance = {
 	success: boolean;
 	source: string;
 	funcName: string;
+	processId: string | null;
 	headerSlug: string;
 	args: any;
 };
@@ -38,6 +39,7 @@ export async function getFunctionInstanceBySlug(
 			success: functionProgress.success,
 			source: functionProgress.source,
 			funcName: functionHeaders.funcName,
+			processId: functionProgress.processId,
 			headerSlug: functionHeaders.funcSlug,
 			args: functionProgress.args
 		})
@@ -60,6 +62,7 @@ export async function getFunctionInstanceById(funcId: number): Promise<FunctionI
 			success: functionProgress.success,
 			source: functionProgress.source,
 			funcName: functionHeaders.funcName,
+			processId: functionProgress.processId,
 			headerSlug: functionHeaders.funcSlug,
 			args: functionProgress.args
 		})
