@@ -140,7 +140,10 @@
 						<div class="space-y-2">
 							<div class="flex items-center justify-between">
 								<div>
-									<div class="font-medium">{item.data.title} ({item.data.description})</div>
+									<div class="font-medium">
+										{item.data.title}
+										{item.data.description ? `(${item.data.description})` : ''}
+									</div>
 								</div>
 								<div class="text-sm font-medium">
 									<div class="flex gap-2 text-sm text-base-content/60">
