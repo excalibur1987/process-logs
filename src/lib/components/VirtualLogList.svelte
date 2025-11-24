@@ -49,7 +49,9 @@
 						data: {
 							progId,
 							title: savedProgress?.data?.title ?? data?.title,
-							description: savedProgress?.data?.description ?? data.description,
+							description: savedProgress?.data?.description ?? data?.description,
+							postfix: savedProgress?.data?.postfix ?? data.postfix,
+							unit: savedProgress?.data?.unit ?? data.unit,
 							value: data.value,
 							max: data.max,
 							percentage: calculateProgressStats(data.value, data.max).percentage,
@@ -138,11 +140,17 @@
 						<div class="space-y-2">
 							<div class="flex items-center justify-between">
 								<div>
-									<div class="font-medium">{item.data.title || item.data.description}</div>
+									<div class="font-medium">{item.data.title} ({item.data.description})</div>
 								</div>
 								<div class="text-sm font-medium">
-									<div class="text-sm text-base-content/60">
-										{Math.round(item.data.percentage)}% ({item.data.value} / {item.data.max})
+									<div class="flex gap-2 text-sm text-base-content/60">
+										<span
+											>{Math.round(item.data.percentage)}% ({item.data.value} / {item.data.max}) {item
+												.data.unit}</span
+										>
+										{#if item.data.postfix}
+											<span> {item.data.postfix}</span>
+										{/if}
 									</div>
 								</div>
 							</div>

@@ -106,6 +106,8 @@
 		progId: string;
 		title: string;
 		description: string;
+		unit: string;
+		postfix: string;
 		value: number;
 		max: number;
 		duration?: number;
@@ -149,6 +151,8 @@
 						progId,
 						title: existing?.title ?? data.title,
 						description: existing?.description ?? data.description,
+						unit: existing?.unit ?? data.unit,
+						postfix: existing?.postfix ?? data.postfix,
 						value: data.value,
 						max: existing?.max ?? data.max,
 						duration: existing
@@ -403,12 +407,13 @@
 
 			<!-- Search Input -->
 			<div class="form-control mb-4">
-				<label class="label">
+				<label class="label" for="searchLogs">
 					<span class="label-text">Search in logs</span>
 					<span class="label-text-alt">{filteredLogs.length} of {logs.length} logs</span>
 				</label>
 				<input
 					type="text"
+					id="searchLogs"
 					placeholder="Search log messages..."
 					class="input input-bordered"
 					bind:value={searchQuery}
@@ -450,16 +455,26 @@
 			<!-- Time Range Filters -->
 			<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 				<div class="form-control">
-					<label class="label">
+					<label class="label" for="time-range-start">
 						<span class="label-text">Start Time</span>
 					</label>
-					<input type="datetime-local" class="input input-bordered" bind:value={timeRangeStart} />
+					<input
+						type="datetime-local"
+						class="input input-bordered"
+						bind:value={timeRangeStart}
+						id="time-range-start"
+					/>
 				</div>
 				<div class="form-control">
-					<label class="label">
+					<label class="label" for="time-range-end">
 						<span class="label-text">End Time</span>
 					</label>
-					<input type="datetime-local" class="input input-bordered" bind:value={timeRangeEnd} />
+					<input
+						type="datetime-local"
+						class="input input-bordered"
+						bind:value={timeRangeEnd}
+						id="time-range-end"
+					/>
 				</div>
 			</div>
 		</div>

@@ -9,12 +9,19 @@ import { json } from '@sveltejs/kit';
 import { asc, eq, inArray } from 'drizzle-orm';
 
 export async function GET({ params }) {
-	let func: FunctionInstance;
+	let func: FunctionInstance | null = null;
 
 	if (parseInt(params.funcId).toString().length !== params.funcId.length) {
 		func = await getFunctionInstanceBySlug(params.funcId);
 	} else {
 		func = await getFunctionInstanceById(parseInt(params.funcId));
+	}
+
+	if (!func) {
+		return json({
+			logs: [],
+			function: null
+		});
 	}
 
 	try {

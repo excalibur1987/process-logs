@@ -7,6 +7,8 @@ export interface ProgressData {
 	progress_id: string;
 	title: string;
 	description: string;
+	unit: string;
+	postfix: string;
 	value: number;
 	max: number;
 	duration?: number;
