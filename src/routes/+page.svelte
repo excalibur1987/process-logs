@@ -26,7 +26,7 @@
 </script>
 
 <div class="p-8">
-	<h1 class="mb-8 text-3xl font-bold">Function Execution Summary</h1>
+	<h1 class="mb-8 text-3xl font-bold">Function Execution Summary in the last 7 days</h1>
 
 	<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
 		<a
@@ -38,7 +38,7 @@
 		</a>
 
 		<a
-			href="/search?startDate={defaultStartDate}&endDate={defaultEndDate}&parentOnly=true&status=running"
+			href="/search?parentOnly=true&status=running"
 			class="stat rounded-box bg-info transition-opacity hover:opacity-90"
 		>
 			<div class="stat-title">Running</div>
