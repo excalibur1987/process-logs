@@ -1,6 +1,6 @@
 import { db } from '$lib/db';
 import { functionHeaders, functionProgress } from '$lib/db/schema';
-import { and, desc, eq, gte, isNull, lte } from 'drizzle-orm';
+import { and, desc, eq, gte, isNull, lte, sql } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
@@ -45,9 +45,14 @@ export const load: PageServerLoad = async () => {
 		.orderBy(desc(functionProgress.startDate))
 		.limit(10);
 
+	const runningFunctionsCount = await db
+		.select({ count: sql<number>`count(*)`.mapWith(Number) })
+		.from(functionProgress)
+		.where(and(eq(functionProgress.finished, false), eq(functionProgress.success, false), isNull(functionProgress.parentId)));
+
 	const summary = {
 		total: allResults.length,
-		running: allResults.filter((r) => !r.finished).length,
+		running: runningFunctionsCount[0]?.count || 0,
 		succeeded: allResults.filter((r) => r.finished && r.success).length,
 		failed: allResults.filter((r) => r.finished && !r.success).length,
 		results: parentResults
