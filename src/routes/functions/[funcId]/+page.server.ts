@@ -10,8 +10,7 @@ import { exec } from 'child_process';
 import { desc, eq } from 'drizzle-orm';
 import type { Actions, PageServerLoad } from './$types';
 
-async function markFunctionAsFailed(funcId: number) {
-	// Get the last log date
+async function getLastLogDate(funcId: number) {
 	const [lastLog] = await db
 		.select({
 			rowDate: functionLogs.rowDate
@@ -21,12 +20,29 @@ async function markFunctionAsFailed(funcId: number) {
 		.orderBy(desc(functionLogs.rowDate))
 		.limit(1);
 
+	return lastLog?.rowDate || new Date().toISOString();
+}
+
+async function markFunctionAsFailed(funcId: number) {
 	const [updatedFunc] = await db
 		.update(functionProgress)
 		.set({
 			finished: true,
 			success: false,
-			endDate: lastLog?.rowDate || new Date().toISOString()
+			endDate: await getLastLogDate(funcId)
+		})
+		.where(eq(functionProgress.funcId, funcId))
+		.returning();
+	return updatedFunc;
+}
+
+async function markFunctionAsSuccessful(funcId: number) {
+	const [updatedFunc] = await db
+		.update(functionProgress)
+		.set({
+			finished: true,
+			success: true,
+			endDate: await getLastLogDate(funcId)
 		})
 		.where(eq(functionProgress.funcId, funcId))
 		.returning();
@@ -100,6 +116,26 @@ export const actions: Actions = {
 			return { success: true, function: updatedFunc };
 		} catch (err) {
 			console.error('Error marking function as failed:', err);
+			throw error(500, 'Failed to update function status');
+		}
+	},
+	markAsSuccessful: async ({ params }) => {
+		try {
+			let func: FunctionInstance | null;
+			if (parseInt(params.funcId).toString().length !== params.funcId.length) {
+				func = await getFunctionInstanceBySlug(params.funcId);
+			} else {
+				func = await getFunctionInstanceById(parseInt(params.funcId));
+			}
+
+			if (!func) {
+				throw error(404, 'Function not found');
+			}
+			const updatedFunc = await markFunctionAsSuccessful(func.funcId);
+
+			return { success: true, function: updatedFunc };
+		} catch (err) {
+			console.error('Error marking function as successful:', err);
 			throw error(500, 'Failed to update function status');
 		}
 	},

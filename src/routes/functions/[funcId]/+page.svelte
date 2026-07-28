@@ -15,9 +15,14 @@
 		<div>
 			<h1 class="text-3xl font-bold">Function Details</h1>
 			{#if !func.finished}
-				<form method="POST" action="?/markAsFailed">
-					<button class="btn btn-error btn-sm mt-2" type="submit"> Mark as Failed </button>
-				</form>
+				<div class="mt-2 flex gap-2">
+					<form method="POST" action="?/markAsSuccessful">
+						<button class="btn btn-success btn-sm" type="submit"> Mark as Successful </button>
+					</form>
+					<form method="POST" action="?/markAsFailed">
+						<button class="btn btn-error btn-sm" type="submit"> Mark as Failed </button>
+					</form>
+				</div>
 			{/if}
 			{#if func.processId}
 				<form method="POST" action="?/killProcess">
